@@ -192,12 +192,12 @@ def PrintPercentage_zbin(index1, index2):
             print "%.4f" % ((100*len2)/len1)
     return
 
-def RegionFile(index,filename,color,size):
+def RegionFile(index,filename,color,size,galaxyid):
     f = open('/Users/yuhsuan/Documents/research/05WH/data/'+filename+'.reg','w')
     f.write('global color='+color+' font="helvetica 10 normal" select=1 edit=1 move=1 delete=1 include=1 fixed=0 source\n')
     N = len( data[index].filled()[mask[index]] )
     for n in range(N):
-        f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={'+str(n)+'}\n')
+        f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={'+str(data[index][galaxyid][mask[index]][n])+'}\n')
     f.close()
     
 # =============================================================================
@@ -211,8 +211,8 @@ number = 5
 catalog = [None]*number
 catalog[0] = "COSMOS2015_Laigle+_v1.1_simple.fits"
 #"01_COSMOS2015catalog/COSMOS2015/COSMOS2015_Laigle+_v1.1.fits"
-catalog[1] = "COSMOS+mips24_allmatches_simple.fits"
-catalog[2] = "COSMOS+wide850_allmatches_simple.fits"
+catalog[1] = "COSMOS+mips24_allmatches.fits"
+catalog[2] = "COSMOS+wide850_allmatches.fits"
 catalog[3] = "COSMOS+mips24＋wide850_allmatches.fits"
 catalog[4] = "COSMOS+wide850_bestmatchfor850.fits"
 
@@ -289,10 +289,14 @@ print "---"
 PrintPercentage_zbin(0,2)
 '''
 
-RegionFile(2, 'COSMOS850sources', 'red','5.0')
-RegionFile(1, 'COSMOS24sources', 'blue','4.0')
-#RegionFile(0, 'COSMOS24sources', 'blue','1.0')
+#RegionFile(2, 'COSMOS850sources', 'red','4.0','NUMBER')
+#RegionFile(1, 'COSMOS24sources', 'blue','3.0','NUMBER')
+#RegionFile(3, 'COSMOS24850sources', 'yellow','2.0','NUMBER')
+#RegionFile(0, 'COSMOSsources', 'pink','1.0','NUMBER')
 
+data = data[0][mask[0]]
+
+data.write('COSMOS2015_Laigle+_v1.1_simple_masked.fits')
 
 
 #PlotHist_massmed(data24,mask24)
