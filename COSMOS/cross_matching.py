@@ -20,44 +20,33 @@ def ReadCatalog(index,catalog):
     return
 
 def MaskData(data1, ra1, dec1, data2, ra2, dec2, i):
-    delta_ra = data2[ra2][i]-data1[ra1]
-    mask_ra = (delta_ra>=-searching_radius)&(delta_ra<=searching_radius)
+    mask_ra = (data1[ra1]<=data2[ra2][i]+searching_radius) &\
+    (data1[ra1] >=data2[ra2][i]-searching_radius)
     data_tmp1 = data1[mask_ra]
-    
+        
     delta_ra = data2[ra2][i]-data_tmp1[ra1]
     delta_dec = data2[dec2][i]-data_tmp1[dec1]
     distance = ( delta_ra**2 + delta_dec**2 )**0.5
-    
     mask_dist = distance<=searching_radius
     data_tmp = data_tmp1[mask_dist]
-    #print data_tmp
     return data_tmp
     
 def Temp():
     totalnumber = [0]*len(data[1].filled())
-    for i in range(3):#( len(data[1].filled()) ):
+    for i in [15]:#range(100):#range( len(data[1].filled()) ):
         data_tmp = MaskData(data[0],ra[0],dec[0],data[1],ra[1],dec[1],i)
+        #print data_tmp[galaxyid[0]]
         data_tmp2 = MaskData(data[2],ra[2],dec[2],data[1],ra[1],dec[1],i)
-        print data[1][ra[1]][i]
-        print data[1][dec[1]][i]
-        print 'len(data_tmp.filled())',len(data_tmp.filled())
-        print 'len(data_tmp2.filled())',len(data_tmp2.filled())
-        print data_tmp[galaxyid[0]]
-        print data_tmp2[galaxyid[0]]
-        print data_tmp2[ra[0]]
-        print data_tmp2[dec[0]]
+        #print data_tmp2[galaxyid[0]]
+        #print '==='
+        print len(data_tmp.filled())
+        print len(data_tmp2.filled())
         for j in range( len(data_tmp.filled()) ):
             for k in range( len(data_tmp2.filled()) ):
                 if data_tmp[galaxyid[0]][j] == data_tmp2[galaxyid[0]][k]:
                     totalnumber[i] += 1
-        print 'totalnumber[i]',totalnumber[i]
-    return
-
-def Matching_temp(total):
-    for i in range( len(data[1].filled()) ):
-        data_tmp = MaskData(data[2],ra[2],dec[2],data[1],ra[1],dec[1],i)
-        total += len(data_tmp.filled())
-    return total
+        print totalnumber[i]
+    return totalnumber
 
 def Matching(total):
     for i in range( len(data[1].filled()) ):
@@ -126,13 +115,8 @@ time1 = time.time()
 number = 4
 catalog = [None]*number
 catalog[0] = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
-#"COSMOS+wide850_allmatches.fits"
-#"COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
 catalog[1] = "04_COSMOS450_850/S2COSMOS/catalog/S2COSMOS_sourcecat850_Simpson18.fits" #wide850
-#"COSMOS+wide850_allmatches_simple.fits"
-#"04_COSMOS450_850/S2COSMOS/catalog/S2COSMOS_sourcecat850_Simpson18.fits" #wide850
 catalog[2] = "COSMOS+mips24_allmatches.fits" #mips24 in COSMOS2015
-#"COSMOS+mips24＋wide850_allmatches.fits" #mips24 in COSMOS2015
 catalog[3] = "VLA_3GHz_counterpart_array_20170210_paper_smolcic_et_al.fits.txt" #3GHz in COSMOS2015
 
 ###set ID column names
@@ -150,7 +134,7 @@ dec[0] = "DELTA_J2000"
 ra[1] = "RA_deg"
 dec[1] = "DEC_deg"
 ra[2] = "ALPHA_J2000"
-dec[2] = "DELTA_J2000"
+dec[2] = "ALPHA_J2000"
 
 ###read catalog
 data = [None]*number
@@ -159,10 +143,10 @@ for i in range(number):
 
 ###matching
 searching_radius = 7.0/60/60
-total = 0
+#total = 0
 #print Matching(total)
-#print Matching_temp(total)
-Temp()
+totalnumber = Temp()
+#print totalnumber
 
 #RegionFile(1,'850sources','green','4.0')
 
