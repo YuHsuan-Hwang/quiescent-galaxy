@@ -192,12 +192,12 @@ def PrintPercentage_zbin(index1, index2):
             print "%.4f" % ((100*len2)/len1)
     return
 
-def RegionFile(index,filename,color,size,galaxyid):
+def RegionFile(index,filename,color,size):
     f = open('/Users/yuhsuan/Documents/research/05WH/data/'+filename+'.reg','w')
     f.write('global color='+color+' font="helvetica 10 normal" select=1 edit=1 move=1 delete=1 include=1 fixed=0 source\n')
     N = len( data[index].filled()[mask[index]] )
     for n in range(N):
-        f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={'+str(data[index][galaxyid][mask[index]][n])+'}\n')
+        f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={'+str(n)+'}\n')
     f.close()
     
 # =============================================================================
@@ -209,10 +209,10 @@ time1 = time.time()
 ###set catalogs
 number = 5
 catalog = [None]*number
-catalog[0] = "COSMOS2015_Laigle+_v1.1_simple.fits"
+catalog[0] = "COSMOS2015_Laigle+_v1.1_850sources_1.fits"
 #"01_COSMOS2015catalog/COSMOS2015/COSMOS2015_Laigle+_v1.1.fits"
-catalog[1] = "COSMOS+mips24_allmatches.fits"
-catalog[2] = "COSMOS+wide850_allmatches.fits"
+catalog[1] = "COSMOS+mips24_allmatches_simple.fits"
+catalog[2] = "COSMOS+wide850_allmatches_simple.fits"
 catalog[3] = "COSMOS+mips24＋wide850_allmatches.fits"
 catalog[4] = "COSMOS+wide850_bestmatchfor850.fits"
 
@@ -251,8 +251,10 @@ mask = []
 x_masked = []
 y_masked = []
 
-for i in range(number):
-    mask.append( Mask_M(i) & Mask_photoz(i) & Mask_error(i) & Mask_class_star(i) )
+for i in [0]:#range(number):
+    
+    mask.append( Mask_M(i) & Mask_photoz(i) & Mask_error(i) & Mask_class_star(i)\
+                &(data[0]['850SOURCE']==True) )
     #& Mask_myclassQG(i)
     #& Mask_mass(i,7.0,9.8)
     #& Mask_myclassQG(i) & Mask_classSFG(i)
@@ -270,10 +272,10 @@ set_xlable = '$M_{'+colorname2+'}-M_{'+colorname3+'}$'
 set_ylable = '$M_{'+colorname1+'}-M_{'+colorname2+'}$'
 
 ###NUVrJ_unscaled_struc_minus1point5to2_minus1to7
-#Plot(0,0,1,1,1)#Plot_zbin(index, scale, struc, limit, line)
+Plot(0,0,0,1,1)#Plot_zbin(index, scale, struc, limit, line)###########
 
 ###NUVrJ_zbin_unscaled_struc_minus1point5to2_minus1to7
-#Plot_zbin(0,0,1,1,1) #Plot_zbin(index, scale, struc, limit, line)
+#Plot_zbin(0,0,0,1,1) #Plot_zbin(index, scale, struc, limit, line)
 #Plot_zbin(1,0,1,1,1)
 ###NUVrJ_zbin_unscaled_minus1point5to2_minus1to7
 #Plot_zbin(0,0,1,1,1)
@@ -289,14 +291,10 @@ print "---"
 PrintPercentage_zbin(0,2)
 '''
 
-#RegionFile(2, 'COSMOS850sources', 'red','4.0','NUMBER')
-#RegionFile(1, 'COSMOS24sources', 'blue','3.0','NUMBER')
-#RegionFile(3, 'COSMOS24850sources', 'yellow','2.0','NUMBER')
-#RegionFile(0, 'COSMOSsources', 'pink','1.0','NUMBER')
+#RegionFile(2, 'COSMOS850sources', 'red','5.0')
+#RegionFile(1, 'COSMOS24sources', 'blue','4.0')
+#RegionFile(0, 'COSMOS24sources', 'blue','1.0')
 
-data = data[0][mask[0]]
-
-data.write('COSMOS2015_Laigle+_v1.1_simple_masked.fits')
 
 
 #PlotHist_massmed(data24,mask24)
