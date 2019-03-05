@@ -54,6 +54,10 @@ def MaskPosition(data1, ra1, dec1, data2, ra2, dec2, i):
     data_tmp = data_tmp1[mask_dist]
     return data_tmp
 
+def MaskGalaxyid(data1, id1, data2, id2, i):
+    mask = (data1[id1][i] == data2[id2])
+    return data2[mask]
+
 def Matching(total):
     for i in range( len(data[1].filled()) ):
         mask_ra = (data[0][ra[0]]<=data[1][ra[1]][i]+searching_radius) &\
@@ -118,13 +122,13 @@ def RegionFile(index,filename,color,size):
 time1 = time.time()
 
 ###set catalog names
-number = 4
+number = 5
 catalog = [None]*number
 catalog[0] = "COSMOS2015_Laigle+_v1.1_simple.fits"
-#"01_COSMOS2015catalog/COSMOS2015/COSMOS2015_Laigle+_v1.1.fits" #COSMOS2015
 catalog[1] = "04_COSMOS450_850/S2COSMOS/catalog/S2COSMOS_sourcecat850_Simpson18.fits" #wide850
 catalog[2] = "COSMOS+mips24_allmatches.fits" #mips24 in COSMOS2015
 catalog[3] = "VLA_3GHz_counterpart_array_20170210_paper_smolcic_et_al.fits.txt" #3GHz in COSMOS2015
+catalog[4] = "01_COSMOS2015catalog/COSMOS2015/COSMOS2015_Laigle+_v1.1.fits" #COSMOS2015
 
 ###set ID column names
 galaxyid = [None]*number
@@ -166,7 +170,7 @@ class_SFG = "CLASS"
 
 ###read catalog
 data = [None]*number
-for i in range(number):
+for i in range(4):
     ReadCatalog(i,catalog[i])
 
 ###matching
@@ -184,76 +188,72 @@ data2_tmp = data[2][mask_data2]
 mask_data3 = (data[3][galaxyid[3]]>200000)&(data[3][galaxyid[3]]<996000) 
 data3_tmp = data[3][mask_data3]
 
-SOURCE = [0]*len( data[0].filled() )
-totalnumber = [0]*len(data[1].filled())
+SOURCE = [0]*len( data[0].filled() ) #twomatch:1, onematch:2, nomatch:3
 
 print 'start loop'
 nomatch_count = 0
+nomatch_samplecount = 0
 onematch_count = 0
 onematch_samplecount = 0
 twomatch_count = 0
 twomatch_samplecount = 0
-for i in range(1100,len(data[1].filled()),1):#range( len(data[1].filled()) ):
-    #print ''
-    #print 'i ', i
+for i in range(10):#range( len(data[1].filled()) ):
     data_tmp = MaskPosition(data0_tmp,ra[0],dec[0],data[1],ra[1],dec[1],i) 
     data_tmp2 = MaskPosition(data2_tmp,ra[2],dec[2],data[1],ra[1],dec[1],i)
     data_tmp3 = MaskPosition(data3_tmp,ra[3],dec[3],data[1],ra[1],dec[1],i)
-    #print data_tmp[galaxyid[0]]
-    #print data_tmp2[galaxyid[2]]
-    #print data_tmp3[galaxyid[3]]
-    #print '==='
-    #print len(data_tmp.filled())
-    #print len(data_tmp2.filled())
-    #totalnumber[i] += 1000*len( data_tmp.filled() )
     flag = 0
     predictsource = []
     for j in range( len(data_tmp.filled()) ):
-        mask = (data_tmp[galaxyid[0]][j] == data_tmp2[galaxyid[2]])
-        data_tmptmp = data_tmp2[mask]
+        
+        data_tmptmp = MaskGalaxyid(data_tmp,galaxyid[0],data_tmp2,galaxyid[2],j)
+        data_tmptmp2 = MaskGalaxyid(data_tmp,galaxyid[0],data_tmp3,galaxyid[3],j)
+        
+        if len( data_tmptmp.filled() )>1:
+            print '!!!data_tmptmp ',len( data_tmptmp.filled() )
+        if len( data_tmptmp2.filled() )>1:
+            print '!!!data_tmptmp2 ',len( data_tmptmp2.filled() )
+        
         for k in range( len( data_tmptmp.filled() ) ):
-            predictsource.append(data_tmptmp[galaxyid[2]][k])
-        mask2 = (data_tmp[galaxyid[0]][j] == data_tmp3[galaxyid[3]])
-        data_tmptmp2 = data_tmp3[mask2]
-        for k in range( len( data_tmptmp2.filled() ) ):
-            predictsource.append(data_tmptmp2[galaxyid[3]][k])
-        #totalnumber[i] += 100*len( data_tmptmp.filled() )
-        #totalnumber[i] += 10*len( data_tmptmp2.filled() )
-        for k in range( len( data_tmptmp.filled() ) ):
-            masksource = data_tmptmp[galaxyid[2]][k] == data_tmptmp2[galaxyid[3]]
-            datasource = data_tmptmp2[masksource]
-            #totalnumber[i] += len( datasource.filled() )
+            datasource = MaskGalaxyid(data_tmptmp,galaxyid[2],data_tmptmp2,galaxyid[3],k)
+            
             if len( datasource.filled() )!=0:
+                if len( datasource.filled() )>1:
+                    print '!!!len( datasource.filled() ) ',len( datasource.filled() )
                 flag = 1
-                twomatch_samplecount += len( datasource.filled() )
-                #for l in range( len( datasource.filled() ) ):
-                    #SOURCE[ datasource[galaxyid[3]][l] ] = 1
-                    
-                    #print 'True: ',datasource[galaxyid[3]][l]
+                twomatch_samplecount += 1
+                SOURCE[ datasource[galaxyid[3]][0] ] = 1
+        if (flag==0):
+            for k in range( len( data_tmptmp.filled() ) ):
+                predictsource.append(data_tmptmp[galaxyid[2]][k])
+            for k in range( len( data_tmptmp2.filled() ) ):
+                predictsource.append(data_tmptmp2[galaxyid[3]][k])
+            
     if flag==0:
         if ( len( predictsource )!=0 ):
             onematch_count +=1
             onematch_samplecount += len( predictsource )
-            #for k in range( len( predictsource ) ):
-                #SOURCE[ predictsource[k] ] = 1
-                #print 'True: ',predictsource[k]
+            for k in range( len( predictsource ) ):
+                SOURCE[ predictsource[k] ] = 2
         else:
             nomatch_count +=1
-            #for k in range( len( data_tmp.filled() ) ):
-                #SOURCE[ data_tmp[galaxyid[0]][k] ] = 1
+            nomatch_samplecount += len( data_tmp.filled() )
+            for k in range( len( data_tmp.filled() ) ):
+                SOURCE[ data_tmp[galaxyid[0]][k] ] = 3
             
     else:
         twomatch_count +=1
-        print i
 
-print nomatch_count
-print onematch_count
-print onematch_samplecount
-print twomatch_count
-print twomatch_samplecount
-#print 'start writing table file'              
-#data[0]['850SOURCE'] = SOURCE
-#data[0].write('COSMOS2015_Laigle+_v1.1_850sources.fits')
+print 'nomatch_count ',nomatch_count
+print 'nomatch_samplecount ',nomatch_samplecount
+print 'onematch_count ',onematch_count
+print 'onematch_samplecount ',onematch_samplecount
+print 'twomatch_count ',twomatch_count
+print 'twomatch_samplecount ',twomatch_samplecount
+
+print 'start writing table file'
+ReadCatalog(4,catalog[4])              
+data[4]['850SOURCE'] = SOURCE
+data[4].write('COSMOS2015_Laigle+_v1.1_850sources.fits')
 
 #RegionFile(1,'850sources','green','4.0')
 
