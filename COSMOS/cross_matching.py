@@ -11,7 +11,9 @@ Created on Sun Feb  3 16:09:52 2019
 from __future__ import division
 import time
 from astropy.table import Table
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 # =============================================================================
 # functions
 # =============================================================================
@@ -29,11 +31,11 @@ def Mask_M(index):
     return mask_M
 
 def Mask_error(index):
-    mask_V_errorV = (data[index][V_error]<0.1) & (data[index][V_error]>0)
+    mask_V_errorV = (data[index][V_error]<0.2) & (data[index][V_error]>0)
     #Suprime-Cam:i+band
-    mask_ip_error = (data[index][ip_error]<0.1) & (data[index][ip_error]>0)
-    mask_J_error = (data[index][J_error]<0.1) & (data[index][J_error]>0)
-    mask_Ks_error = (data[index][Ks_error]<0.1) & (data[index][Ks_error]>0)
+    mask_ip_error = (data[index][ip_error]<0.2) & (data[index][ip_error]>0)
+    mask_J_error = (data[index][J_error]<0.2) & (data[index][J_error]>0)
+    mask_Ks_error = (data[index][Ks_error]<0.2) & (data[index][Ks_error]>0)
     return mask_V_errorV | mask_ip_error | mask_J_error | mask_Ks_error
 
 def Mask_photoz(index):
@@ -41,72 +43,6 @@ def Mask_photoz(index):
 
 def Mask_class_star(index):
     return (data[index][class_star]==0)
-
-def MaskPosition(data1, ra1, dec1, data2, ra2, dec2, i):
-    mask_ra = (data1[ra1]<=data2[ra2][i]+searching_radius) &\
-    (data1[ra1] >=data2[ra2][i]-searching_radius)
-    data_tmp1 = data1[mask_ra]
-        
-    delta_ra = data2[ra2][i]-data_tmp1[ra1]
-    delta_dec = data2[dec2][i]-data_tmp1[dec1]
-    distance = ( delta_ra**2 + delta_dec**2 )**0.5
-    mask_dist = distance<=searching_radius
-    data_tmp = data_tmp1[mask_dist]
-    return data_tmp
-
-def MaskGalaxyid(data1, id1, data2, id2, i):
-    mask = (data1[id1][i] == data2[id2])
-    return data2[mask]
-
-def Matching(total):
-    for i in range( len(data[1].filled()) ):
-        mask_ra = (data[0][ra[0]]<=data[1][ra[1]][i]+searching_radius) &\
-        (data[0][ra[0]]>=data[1][ra[1]][i]-searching_radius)
-        data_tmp1 = data[0][mask_ra]
-        
-        delta_ra = data[1][ra[1]][i]-data_tmp1[ra[0]]
-        delta_dec = data[1][dec[1]][i]-data_tmp1[dec[0]]
-        distance = ( delta_ra**2 + delta_dec**2 )**0.5
-        mask_dist = distance<=searching_radius
-        data_tmp = data_tmp1[mask_dist]
-        for j in range( len(data_tmp.filled()) ):
-            total += 1
-    return total
-
-def Matchingprime01(total):
-    for i in range( len(data[1].filled()) ):
-        mask_ra = (data[0][ra[0]]<data[1][ra[1]][i]+searching_radius) &\
-        (data[0][ra[0]]>data[1][ra[1]][i]-searching_radius)
-        data_tmp1 = data[0][mask_ra]
-        mask_dec = (data_tmp1[dec[0]]<data[1][dec[1]][i]+searching_radius) &\
-        (data_tmp1[dec[0]]>data[1][dec[1]][i]-searching_radius)
-        data_tmp = data_tmp1[mask_dec]
-        for j in range( len(data_tmp.filled()) ):
-            delta_ra = data[1][ra[1]][i]-data_tmp[ra[0]][j]
-            delta_dec = data[1][dec[1]][i]-data_tmp[dec[0]][j]
-            distance = ( delta_ra**2 + delta_dec**2 )**0.5
-            if (distance<=searching_radius):
-                total+=1
-    return total
-
-def Matchingprime02(total):
-    sorted_ra = data[0].argsort(keys=ra[0], kind=None)
-    for i in range( 15 ):#len(data[1].filled()) ):
-        flag=0
-        for j in sorted_ra:
-            if flag==1:
-                if (data[0][ra[0]][j]>data[1][ra[1]][i]+searching_radius):
-                    break
-                else:
-                    delta_ra = data[1][ra[1]][i]-data[0][ra[0]][j]
-                    delta_dec = data[1][dec[1]][i]-data[0][dec[0]][j]
-                    distance = ( delta_ra**2 + delta_dec**2 )**0.5
-                    if (distance<=searching_radius):
-                        total+=1
-            else:
-                if (data[0][ra[0]][j]>data[1][ra[1]][i]-searching_radius):
-                    flag=1
-    return total
 
 def RegionFile(index,filename,color,size):
     f = open('/Users/yuhsuan/Documents/research/05WH/data/'+filename+'.reg','w')
@@ -174,21 +110,29 @@ for i in range(4):
     ReadCatalog(i,catalog[i])
 
 ###matching
-searching_radius = 7.0/60/60
+searching_radius = 7.0
 #total = 0
 #print Matching(total)
 
 mask_data0 = Mask_M(0) & Mask_photoz(0) & Mask_error(0) & Mask_class_star(0)
 data0_tmp = data[0][mask_data0]
+print 'len(data0_tmp.filled()) ',len(data0_tmp.filled())
 
-mask_data2 = (data[2][galaxyid[2]]>200000)&(data[2][galaxyid[2]]<996000) \
-& Mask_M(2) & Mask_photoz(2) & Mask_error(2) & Mask_class_star(2)
+mask_data2 = Mask_M(2) & Mask_photoz(2) & Mask_error(2) & Mask_class_star(2)
+
+#(data[2][galaxyid[2]]>200000)&(data[2][galaxyid[2]]<996000) \
+#& Mask_M(2) & Mask_photoz(2) & Mask_error(2) & Mask_class_star(2)
 data2_tmp = data[2][mask_data2]
 
-mask_data3 = (data[3][galaxyid[3]]>200000)&(data[3][galaxyid[3]]<996000) 
-data3_tmp = data[3][mask_data3]
+print 'len(data2_tmp.filled()) ',len(data2_tmp.filled())
 
-SOURCE = [0]*len( data[0].filled() ) #twomatch:1, onematch:2, nomatch:3
+#mask_data3 = 
+#(data[3][galaxyid[3]]>200000)&(data[3][galaxyid[3]]<996000) 
+data3_tmp = data[3]#[mask_data3]
+
+print 'len(data3_tmp.filled()) ',len(data3_tmp.filled())
+
+SOURCE = [0]*len( data[0].filled() ) #twomatch:1, onematch:2/3, nomatch:4
 
 print 'start loop'
 nomatch_count = 0
@@ -197,51 +141,75 @@ onematch_count = 0
 onematch_samplecount = 0
 twomatch_count = 0
 twomatch_samplecount = 0
-for i in range(10):#range( len(data[1].filled()) ):
-    data_tmp = MaskPosition(data0_tmp,ra[0],dec[0],data[1],ra[1],dec[1],i) 
-    data_tmp2 = MaskPosition(data2_tmp,ra[2],dec[2],data[1],ra[1],dec[1],i)
-    data_tmp3 = MaskPosition(data3_tmp,ra[3],dec[3],data[1],ra[1],dec[1],i)
+
+c0 = SkyCoord(ra=data0_tmp[ra[0]], dec=data0_tmp[dec[0]])
+c1 = SkyCoord(ra=data[1][ra[1]]*u.degree, dec=data[1][dec[1]]*u.degree)
+c2 = SkyCoord(ra=data2_tmp[ra[2]], dec=data2_tmp[dec[2]])
+c3 = SkyCoord(ra=data3_tmp[ra[3]]*u.degree, dec=data3_tmp[dec[3]]*u.degree)
+
+for i in range( len(data[1].filled()) ):
+    sep = c0.separation(c1[i])
+    data_tmp = data0_tmp[ sep<=searching_radius*u.arcsec ]
+    
+    sep = c2.separation(c1[i])
+    data_tmp2 = data2_tmp[ sep<=searching_radius*u.arcsec ]
+    
+    sep = c3.separation(c1[i])
+    data_tmp3 = data3_tmp[ sep<=searching_radius*u.arcsec ]   
+    
     flag = 0
-    predictsource = []
+    predictsource24 = []
+    predictsource3 = []
     for j in range( len(data_tmp.filled()) ):
-        
-        data_tmptmp = MaskGalaxyid(data_tmp,galaxyid[0],data_tmp2,galaxyid[2],j)
-        data_tmptmp2 = MaskGalaxyid(data_tmp,galaxyid[0],data_tmp3,galaxyid[3],j)
-        
-        if len( data_tmptmp.filled() )>1:
-            print '!!!data_tmptmp ',len( data_tmptmp.filled() )
-        if len( data_tmptmp2.filled() )>1:
-            print '!!!data_tmptmp2 ',len( data_tmptmp2.filled() )
-        
-        for k in range( len( data_tmptmp.filled() ) ):
-            datasource = MaskGalaxyid(data_tmptmp,galaxyid[2],data_tmptmp2,galaxyid[3],k)
+        if data_tmp[galaxyid[0]][j] in data_tmp2[galaxyid[2]]:
+            flag_24 = True
+            predictsource24.append(data_tmp[galaxyid[0]][j])
+        else:
+            flag_24 = False
             
-            if len( datasource.filled() )!=0:
-                if len( datasource.filled() )>1:
-                    print '!!!len( datasource.filled() ) ',len( datasource.filled() )
-                flag = 1
-                twomatch_samplecount += 1
-                SOURCE[ datasource[galaxyid[3]][0] ] = 1
-        if (flag==0):
-            for k in range( len( data_tmptmp.filled() ) ):
-                predictsource.append(data_tmptmp[galaxyid[2]][k])
-            for k in range( len( data_tmptmp2.filled() ) ):
-                predictsource.append(data_tmptmp2[galaxyid[3]][k])
+        if data_tmp[galaxyid[0]][j] in data_tmp3[galaxyid[3]]:
+            flag_3 = True
+            predictsource3.append(data_tmp[galaxyid[0]][j])
+        else:
+            flag_3 = False
+        
+        if (flag_24)&(flag_3):
+            flag = 1
+            twomatch_samplecount += 1
+            if (SOURCE[ data_tmp[galaxyid[0]][j] ] != 0):
+                print "!!!already tagged"
+            else:
+                SOURCE[ data_tmp[galaxyid[0]][j] ] = 1
             
     if flag==0:
-        if ( len( predictsource )!=0 ):
+        if ( len( predictsource24 )!=0 )or( len( predictsource3 )!=0 ):
             onematch_count +=1
-            onematch_samplecount += len( predictsource )
-            for k in range( len( predictsource ) ):
-                SOURCE[ predictsource[k] ] = 2
+            onematch_samplecount += len( predictsource24 )
+            for k in range( len( predictsource24 ) ):
+                if (SOURCE[ predictsource24[k] ] != 0):
+                    print "!!!already tagged"
+                else:
+                        SOURCE[ predictsource24[k] ] = 2
+            
+            onematch_samplecount += len( predictsource3 )
+            for k in range( len( predictsource3 ) ):
+                if (SOURCE[ predictsource3[k] ] != 0):
+                    print "!!!already tagged"
+                else:
+                    SOURCE[ predictsource3[k] ] = 3
         else:
             nomatch_count +=1
             nomatch_samplecount += len( data_tmp.filled() )
             for k in range( len( data_tmp.filled() ) ):
-                SOURCE[ data_tmp[galaxyid[0]][k] ] = 3
+                if (SOURCE[ data_tmp[galaxyid[0]][k] ] != 0):
+                    print "!!!already tagged"
+                else:
+                    SOURCE[ data_tmp[galaxyid[0]][k] ] = 4
             
     else:
         twomatch_count +=1
+    
+# TODO: not only one matched
 
 print 'nomatch_count ',nomatch_count
 print 'nomatch_samplecount ',nomatch_samplecount
@@ -250,10 +218,12 @@ print 'onematch_samplecount ',onematch_samplecount
 print 'twomatch_count ',twomatch_count
 print 'twomatch_samplecount ',twomatch_samplecount
 
+'''
 print 'start writing table file'
 ReadCatalog(4,catalog[4])              
 data[4]['850SOURCE'] = SOURCE
-data[4].write('COSMOS2015_Laigle+_v1.1_850sources.fits')
+data[4].write('COSMOS2015_Laigle+_v1.1_850sources_newerr.fits')
+'''
 
 #RegionFile(1,'850sources','green','4.0')
 
