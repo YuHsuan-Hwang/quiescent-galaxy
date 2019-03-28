@@ -30,13 +30,20 @@ def Mask_M(index):
     mask_M = mask_color1 & mask_color2 & mask_color3
     return mask_M
 
-def Mask_error(index):
-    mask_V_errorV = (data[index][V_error]<0.1) & (data[index][V_error]>0)
-    #Suprime-Cam:i+band
-    mask_ip_error = (data[index][ip_error]<0.1) & (data[index][ip_error]>0)
-    mask_J_error = (data[index][J_error]<0.1) & (data[index][J_error]>0)
-    mask_Ks_error = (data[index][Ks_error]<0.1) & (data[index][Ks_error]>0)
-    return mask_V_errorV | mask_ip_error | mask_J_error | mask_Ks_error
+def Mask_error(mode,inputup,index):
+    up = inputup
+    if mode==1:
+        mask_V_errorV = (data[index][V_error]<up) & (data[index][V_error]>0)
+        #Suprime-Cam:i+band
+        mask_ip_error = (data[index][ip_error]<up) & (data[index][ip_error]>0)
+        mask_J_error = (data[index][J_error]<up) & (data[index][J_error]>0)
+        mask_Ks_error = (data[index][Ks_error]<up) & (data[index][Ks_error]>0)
+        return mask_V_errorV | mask_ip_error | mask_J_error | mask_Ks_error
+    if mode==2:
+        return (data[index][Ks_error]<up) & (data[index][Ks_error]>0)
+    if mode==3:
+        return (data[index][Ks_mag]<24)
+    
 
 def Mask_photoz(index):
     return (data[index][photoz]>0) & (data[index][photoz]<8)
@@ -56,12 +63,26 @@ def Mask_myclassSFG(index):
 #def Mask_mass(index,low,high):
 #    return (data[index][mass]<high) & (data[index][mass]>low)
     
-def PlotHist_photoz(index):
-    NBINS = 50
-    plt.hist(data[index][photoz][mask[index]], NBINS, color='b', alpha=0.7)
+def PlotHist_photoz(index,inputcolor,inputbins,labelname):
+    NBINS = inputbins
+    plt.hist(data[index][photoz][mask[index]], NBINS, color=inputcolor, alpha=0.8, label = labelname)
     plt.title('Histogram photoz')
     plt.ylabel('Number')
     plt.xlabel('z')
+    plt.legend()
+    plt.show()
+    return
+
+def PlotHist_photoz_para(indexlist,inputcolorlist,inputlabel,inputbins):
+    NBINS = inputbins
+    plotdata = []
+    for i in range(len(indexlist)):
+        plotdata.append(data[indexlist[i]][photoz][mask[indexlist[i]]])
+    plt.hist(plotdata, NBINS, color=inputcolorlist, alpha=0.7,label=inputlabel)
+    plt.title('Histogram photoz')
+    plt.ylabel('Number')
+    plt.xlabel('z')
+    plt.legend()
     plt.show()
     return
 
@@ -86,14 +107,14 @@ def DrawLine():
     plt.plot([(3.1-1.0)/3.0,2.0],[3.1,3.0*2.0+1.0],'k-',lw=0.7)
     return
 
-def Plot(index, scale, struc, limit, line):
+def MultiplePlot(index, scale, struc, limit, line, inputcolor, labelname):
     if (struc==1):
         set_s = 0.5
         set_alpha = 0.1
     else:
         set_s = 1
         set_alpha = 1
-    plt.scatter( x_masked[index], y_masked[index], s=set_s, alpha=set_alpha)
+    plt.scatter( x_masked[index], y_masked[index], s=set_s, alpha=set_alpha,color=inputcolor, label=labelname)
     plt.title(colorname1+colorname2+colorname3)
     plt.xlabel(set_xlable)
     plt.ylabel(set_ylable)
@@ -103,6 +124,27 @@ def Plot(index, scale, struc, limit, line):
         plt.axis('scaled')
     if (line==1):
         DrawLine()
+    return
+
+def Plot(index, scale, struc, limit, line, inputcolor, label, labelname):
+    if (struc==1):
+        set_s = 0.5
+        set_alpha = 0.1
+    else:
+        set_s = 1
+        set_alpha = 1
+    plt.scatter( x_masked[index], y_masked[index], s=set_s, alpha=set_alpha,color=inputcolor, label=labelname)
+    plt.title(colorname1+colorname2+colorname3)
+    plt.xlabel(set_xlable)
+    plt.ylabel(set_ylable)
+    if (limit==1):
+        plt.axis([-1.5,2,-1,7])
+    if (scale==1):
+        plt.axis('scaled')
+    if (line==1):
+        DrawLine()
+    if (line==1):
+        plt.legend()
     plt.show()
     return
 
@@ -170,6 +212,13 @@ def PrintNum_zbin(index):
         print len( data[index].filled()[mask[index] & mask_zbin[i]] )
     return
 
+def PrintNum_zbin_total(index):
+    print len( data[index].filled()[mask[index]] )
+    return
+
+def Num_zbin_total(index): 
+    return len( data[index].filled()[mask[index]] )
+
 def PrintNumdiff_zbin(index1, index2):
     mask_zbin1 = Construct_mask_zbin(index1)
     mask_zbin2 = Construct_mask_zbin(index2)
@@ -199,7 +248,55 @@ def RegionFile(index,filename,color,size):
     for n in range(N):
         f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={'+str(n)+'}\n')
     f.close()
+
+def PlotMatchedResult(matchedband):
+    #twomatch:1, onematch24/3:2/3, nomatch:4 rgcb
+    mask.append((data[0][matchedband]==1) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+    mask.append((data[0][matchedband]==2) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+    mask.append((data[0][matchedband]==3) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+    mask.append((data[0][matchedband]==4) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
     
+    for i in range(4):
+        x_masked.append(x[i][mask[i]])
+        y_masked.append(y[i][mask[i]])
+    
+    
+    
+    plt.figure(1)
+    labellist = ['both','24 micron','3 GHz','none']
+    PlotHist_photoz_para([0,1,2,3],['r','g','c','b'],labellist,10)
+    
+    plt.figure(2)
+    MultiplePlot(0,0,0,1,1,'r','both matched')
+    MultiplePlot(1,0,0,1,1,'g','24 micron matched')
+    MultiplePlot(2,0,0,1,1,'c','3GHz matched')
+    MultiplePlot(3,0,0,1,1,'b','none matched')
+    #plt.legend()
+    plt.show()
+    
+    plt.figure(3)
+    plt.figure(figsize=(10,20))
+    plt.subplot(2, 2, 2)
+    PlotHist_photoz(0,'r',10,'both matched')
+    plt.subplot(2, 2, 4)
+    PlotHist_photoz(1,'g',10,'24 micron matched')
+    plt.subplot(2, 2, 1)
+    PlotHist_photoz(2,'c',10,'3GHz matched') 
+    plt.subplot(2, 2, 3)
+    PlotHist_photoz(3,'b',10,'none matched') 
+    plt.tight_layout()
+    
+    plt.figure(4)
+    plt.figure(figsize=(10,20))
+    plt.subplot(2, 2, 2)
+    Plot(0,0,0,1,1,'r',1,'both matched, '+str(Num_zbin_total(0))+' samples')
+    plt.subplot(2, 2, 4)
+    Plot(1,0,0,1,1,'g',1,'24 micron matched, '+str(Num_zbin_total(1))+' samples')
+    plt.subplot(2, 2, 1)
+    Plot(2,0,0,1,1,'c',1,'3GHz matched, '+str(Num_zbin_total(2))+' samples')
+    plt.subplot(2, 2, 3)
+    Plot(3,0,0,1,1,'b',1,'none matched, '+str(Num_zbin_total(3))+' samples')
+    plt.tight_layout()
 # =============================================================================
 # main code
 # =============================================================================
@@ -209,7 +306,9 @@ time1 = time.time()
 ###set catalogs
 number = 5
 catalog = [None]*number
-catalog[0] = "COSMOS2015_Laigle+_v1.1_850sources_1.fits"
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_850wide+850narrow+450narrow_simple.fits'
+#"COSMOS2015_Laigle+_v1.1_850sources_simple.fits"
+#"COSMOS2015_Laigle+_v1.1_850sources_1.fits"
 #"01_COSMOS2015catalog/COSMOS2015/COSMOS2015_Laigle+_v1.1.fits"
 catalog[1] = "COSMOS+mips24_allmatches_simple.fits"
 catalog[2] = "COSMOS+wide850_allmatches_simple.fits"
@@ -232,47 +331,55 @@ V_error = "V_MAGERR_APER3"
 ip_error = "ip_MAGERR_APER3"
 J_error = "J_MAGERR_APER3"
 Ks_error = "Ks_MAGERR_APER3"
+Ks_mag = "Ks_MAG_APER3"
 mass = "MASS_MED"
 class_star = "TYPE"
 class_SFG = "CLASS"
 ra = "ALPHA_J2000"
 dec = "DELTA_J2000"
 
+set_xlable = '$M_{'+colorname2+'}-M_{'+colorname3+'}$'
+set_ylable = '$M_{'+colorname1+'}-M_{'+colorname2+'}$'  
+
 ###read catalog
 data = [None]*number
 x = [None]*number
 y = [None]*number
 
+#for i in range(number):
+#    ReadCatalog(i,catalog[i])
+
 for i in range(number):
-    ReadCatalog(i,catalog[i])
+    ReadCatalog(i,catalog[0])
 
 ###mask data
 mask = []
 x_masked = []
 y_masked = []
 
-for i in [0]:#range(number):
-    
-    mask.append( Mask_M(i) & Mask_photoz(i) & Mask_error(i) & Mask_class_star(i)\
-                &(data[0]['850SOURCE']==True) )
+#for i in range(number):
+    #mask.append(data[0]['850SOURCE']==4)
+    #mask.append( Mask_M(i) & Mask_photoz(i) & Mask_error(2,0.1,i) & Mask_class_star(i) )
+    #& (data[0]['850SOURCE']!=0)
+    #twomatch:1, onematch:2/3, nomatch:4 rgcb
     #& Mask_myclassQG(i)
     #& Mask_mass(i,7.0,9.8)
     #& Mask_myclassQG(i) & Mask_classSFG(i)
-    x_masked.append(x[i][mask[i]])
-    y_masked.append(y[i][mask[i]])
+    #x_masked.append(x[i][mask[i]])
+    #y_masked.append(y[i][mask[i]])
     
+
+
+ 
+
 #(data24['flux_24_2']>80)
 
 ###plot
-        
-#PlotHist_photoz(0)    
+#PlotHist_photoz(0,'C0',50)
 #PlotHist_M(0)
 
-set_xlable = '$M_{'+colorname2+'}-M_{'+colorname3+'}$'
-set_ylable = '$M_{'+colorname1+'}-M_{'+colorname2+'}$'
-
 ###NUVrJ_unscaled_struc_minus1point5to2_minus1to7
-Plot(0,0,0,1,1)#Plot_zbin(index, scale, struc, limit, line)###########
+#Plot(0,0,1,1,1,'C0') #Plot_zbin(index, scale, struc, limit, line)
 
 ###NUVrJ_zbin_unscaled_struc_minus1point5to2_minus1to7
 #Plot_zbin(0,0,0,1,1) #Plot_zbin(index, scale, struc, limit, line)
@@ -281,8 +388,162 @@ Plot(0,0,0,1,1)#Plot_zbin(index, scale, struc, limit, line)###########
 #Plot_zbin(0,0,1,1,1)
 #Plot_zbin(1,0,1,1,1)
 
+
+###850 sources
 '''
-PrintNum_zbin(0)
+#twomatch:1, onematch24/3:2/3, nomatch:4 rgcb
+mask.append((data[0]['850SOURCE']==1) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)& Mask_myclassQG(0))
+mask.append((data[0]['850SOURCE']==2) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)& Mask_myclassQG(0))
+mask.append((data[0]['850SOURCE']==3) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)& Mask_myclassQG(0))
+mask.append((data[0]['850SOURCE']==4) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)& Mask_myclassQG(0))
+
+for i in range(4):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+plt.figure(1)
+PlotHist_photoz(0,'r',20)
+plt.figure(2)
+PlotHist_photoz(1,'g',20)
+plt.figure(3)
+PlotHist_photoz(2,'c',20) 
+plt.figure(4)
+PlotHist_photoz(3,'b',20) 
+
+#plt.figure(5)
+labellist = ['both','24 micron','3 GHz','none']
+PlotHist_photoz_para([0,1,2,3],['r','g','c','b'],labellist,10)
+
+plt.figure(6)
+Plot(0,0,0,1,1,'r')
+plt.figure(7)
+Plot(1,0,0,1,1,'g')
+plt.figure(8)
+Plot(2,0,0,1,1,'c')
+plt.figure(9)
+Plot(3,0,0,1,1,'b')
+'''
+
+###850 narrow
+'''
+#twomatch:1, onematch24/3:2/3, nomatch:4 rgcb
+mask.append((data[0]["850NARROW"]==1) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+mask.append((data[0]['850NARROW']==2) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+mask.append((data[0]['850NARROW']==3) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+mask.append((data[0]['850NARROW']==4) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+
+for i in range(4):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+
+
+plt.figure(1)
+labellist = ['both','24 micron','3 GHz','none']
+PlotHist_photoz_para([0,1,2,3],['r','g','c','b'],labellist,10)
+
+plt.figure(2)
+Plot(0,0,0,1,1,'r')
+Plot(1,0,0,1,1,'g')
+Plot(2,0,0,1,1,'c')
+Plot(3,0,0,1,1,'b') 
+
+plt.figure(3)
+plt.figure(figsize=(10,20))
+plt.subplot(2, 2, 2)
+PlotHist_photoz(0,'r',10)
+plt.subplot(2, 2, 4)
+PlotHist_photoz(1,'g',10)
+plt.subplot(2, 2, 1)
+PlotHist_photoz(2,'c',10) 
+plt.subplot(2, 2, 3)
+PlotHist_photoz(3,'b',10) 
+plt.tight_layout()
+
+plt.figure(4)
+plt.figure(figsize=(10,20))
+plt.subplot(2, 2, 2)
+Plot(0,0,0,1,1,'r')
+plt.subplot(2, 2, 4)
+Plot(1,0,0,1,1,'g')
+plt.subplot(2, 2, 1)
+Plot(2,0,0,1,1,'c')
+plt.subplot(2, 2, 3)
+Plot(3,0,0,1,1,'b')
+plt.tight_layout()
+'''
+
+###450 narrow
+
+PlotMatchedResult('850NARROW')
+
+
+
+
+###test different selection
+'''
+mask.append((data[0]['850SOURCE']==4) & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(2,0.2,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(2,0.1,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(3,0,0) & Mask_class_star(0))#& Mask_myclassQG(0))
+
+for i in range(4):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+plt.figure(1)
+PlotHist_photoz(0,'C0',50)
+
+plt.figure(1)
+PlotHist_photoz(1,'palevioletred',50)
+plt.figure(2)
+PlotHist_photoz(2,'coral',50) 
+plt.figure(1)
+PlotHist_photoz(3,'peru',50) 
+
+plt.figure(1)
+PlotHist_photoz(1,'seagreen',50)
+plt.figure(2)
+PlotHist_photoz(2,'yellowgreen',50) 
+
+plt.figure(2)
+labellist = ['4 bands error < 0.1','K band error < 0.2','K band error < 0.1','K band < 24']
+PlotHist_photoz_para([0,1,2,3],['C0','palevioletred','coral','peru'],labellist)
+
+plt.figure(3)
+labellist = ['4 bands error < 0.1','V band error < 0.2','V band error < 0.1']
+PlotHist_photoz_para([0,1,2],['C0','seagreen','yellowgreen'],labellist)
+
+plt.figure(4)
+Plot(0,0,1,1,1,'C0')
+
+plt.figure(5)
+Plot(1,0,1,1,1,'palevioletred')
+plt.figure(6)
+Plot(2,0,1,1,1,'coral')
+plt.figure(3)
+Plot(3,0,1,1,1,'peru')
+
+plt.figure(4)
+Plot(1,0,1,1,1,'seagreen')
+plt.figure(5)
+Plot(2,0,1,1,1,'yellowgreen')
+'''
+
+
+
+
+
+
+#PrintNum_zbin_total(0)
+#PrintNum_zbin_total(1)
+#PrintNum_zbin_total(2)
+#PrintNum_zbin_total(3)
+#PrintNum_zbin(0)
+
+
+
+'''
 print "---"
 PrintNum_zbin(3)
 print "---"
