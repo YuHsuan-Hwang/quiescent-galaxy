@@ -31,11 +31,11 @@ def Mask_M(index):
     return mask_M
 
 def Mask_error(index):
-    mask_V_errorV = (data[index][V_error]<0.2) & (data[index][V_error]>0)
+    mask_V_errorV = (data[index][V_error]<0.1) & (data[index][V_error]>0)
     #Suprime-Cam:i+band
-    mask_ip_error = (data[index][ip_error]<0.2) & (data[index][ip_error]>0)
-    mask_J_error = (data[index][J_error]<0.2) & (data[index][J_error]>0)
-    mask_Ks_error = (data[index][Ks_error]<0.2) & (data[index][Ks_error]>0)
+    mask_ip_error = (data[index][ip_error]<0.1) & (data[index][ip_error]>0)
+    mask_J_error = (data[index][J_error]<0.1) & (data[index][J_error]>0)
+    mask_Ks_error = (data[index][Ks_error]<0.1) & (data[index][Ks_error]>0)
     return mask_V_errorV | mask_ip_error | mask_J_error | mask_Ks_error
 
 def Mask_photoz(index):
@@ -57,19 +57,57 @@ def RegionFile(index,filename,color,size):
 
 time1 = time.time()
 
+###set crossmatching catalog
+
+'''
+#850wide
+CATALOG = "04_COSMOS450_850/S2COSMOS/catalog/S2COSMOS_sourcecat850_Simpson18.fits"
+ID = "Short_ID"
+RA = "RA_deg"
+DEC = "DEC_deg"
+searching_radius = 7.0
+SOURCE_COLUMN = "850SOURCE"
+INPUT_MAINCATALOG = "01_COSMOS2015catalog/COSMOS2015/COSMOS2015_Laigle+_v1.1.fits" #COSMOS2015
+OUTPUT_MAINCATALOG = 'COSMOS2015_Laigle+_v1.1_850sources.fits'
+'''
+
+'''
+#850narrow
+CATALOG = "04_COSMOS450_850/STUDIES/sources_850.fits"
+ID = ""
+RA = "RA_850"
+DEC = "DEC_850"
+searching_radius = 7.0
+SOURCE_COLUMN = "850NARROW"
+INPUT_MAINCATALOG = "COSMOS2015_Laigle+_v1.1_850sources.fits" #COSMOS2015
+OUTPUT_MAINCATALOG = 'COSMOS2015_Laigle+_v1.1_850wide+850narrow.fits'
+'''
+
+
+#450narrow
+CATALOG = "04_COSMOS450_850/STUDIES/sources_450.fits"
+ID = ""
+RA = "RA_450"
+DEC = "DEC_450"
+searching_radius = 4.0
+SOURCE_COLUMN = "450NARROW"
+INPUT_MAINCATALOG = "COSMOS2015_Laigle+_v1.1_850wide+850narrow.fits" #COSMOS2015
+OUTPUT_MAINCATALOG = 'COSMOS2015_Laigle+_v1.1_850wide+850narrow+450narrow.fits'
+
+
 ###set catalog names
 number = 5
 catalog = [None]*number
 catalog[0] = "COSMOS2015_Laigle+_v1.1_simple.fits"
-catalog[1] = "04_COSMOS450_850/S2COSMOS/catalog/S2COSMOS_sourcecat850_Simpson18.fits" #wide850
+catalog[1] = CATALOG
 catalog[2] = "COSMOS+mips24_allmatches.fits" #mips24 in COSMOS2015
 catalog[3] = "VLA_3GHz_counterpart_array_20170210_paper_smolcic_et_al.fits.txt" #3GHz in COSMOS2015
-catalog[4] = "01_COSMOS2015catalog/COSMOS2015/COSMOS2015_Laigle+_v1.1.fits" #COSMOS2015
+catalog[4] = INPUT_MAINCATALOG
 
 ###set ID column names
 galaxyid = [None]*number
 galaxyid[0] = "NUMBER"
-galaxyid[1] = "Short_ID"
+galaxyid[1] = ID
 galaxyid[2] = "NUMBER"
 galaxyid[3] = "ID_CPT"
 
@@ -78,17 +116,12 @@ ra = [None]*number
 dec = [None]*number
 ra[0] = "ALPHA_J2000"
 dec[0] = "DELTA_J2000"
-ra[1] = "RA_deg"
-dec[1] = "DEC_deg"
+ra[1] = RA
+dec[1] = DEC
 ra[2] = "ALPHA_J2000"
 dec[2] = "DELTA_J2000"
 ra[3] = "RA_CPT_J2000"
 dec[3] = "DEC_CPT_J2000"
-
-###set colors
-colorname1 = "NUV"
-colorname2 = "r"
-colorname3 = "J"
 
 ###set columns in the main catalog
 color1 = "MNUV"
@@ -110,7 +143,7 @@ for i in range(4):
     ReadCatalog(i,catalog[i])
 
 ###matching
-searching_radius = 7.0
+
 #total = 0
 #print Matching(total)
 
@@ -176,35 +209,35 @@ for i in range( len(data[1].filled()) ):
         if (flag_24)&(flag_3):
             flag = 1
             twomatch_samplecount += 1
-            if (SOURCE[ data_tmp[galaxyid[0]][j] ] != 0):
+            if (SOURCE[ data_tmp[galaxyid[0]][j] -1] != 0):
                 print "!!!already tagged"
             else:
-                SOURCE[ data_tmp[galaxyid[0]][j] ] = 1
+                SOURCE[ data_tmp[galaxyid[0]][j] -1] = 1
             
     if flag==0:
         if ( len( predictsource24 )!=0 )or( len( predictsource3 )!=0 ):
             onematch_count +=1
             onematch_samplecount += len( predictsource24 )
             for k in range( len( predictsource24 ) ):
-                if (SOURCE[ predictsource24[k] ] != 0):
+                if (SOURCE[ predictsource24[k] -1] != 0):
                     print "!!!already tagged"
                 else:
-                        SOURCE[ predictsource24[k] ] = 2
+                        SOURCE[ predictsource24[k] -1] = 2
             
             onematch_samplecount += len( predictsource3 )
             for k in range( len( predictsource3 ) ):
-                if (SOURCE[ predictsource3[k] ] != 0):
+                if (SOURCE[ predictsource3[k] -1] != 0):
                     print "!!!already tagged"
                 else:
-                    SOURCE[ predictsource3[k] ] = 3
+                    SOURCE[ predictsource3[k] -1] = 3
         else:
             nomatch_count +=1
             nomatch_samplecount += len( data_tmp.filled() )
             for k in range( len( data_tmp.filled() ) ):
-                if (SOURCE[ data_tmp[galaxyid[0]][k] ] != 0):
+                if (SOURCE[ data_tmp[galaxyid[0]][k] -1] != 0):
                     print "!!!already tagged"
                 else:
-                    SOURCE[ data_tmp[galaxyid[0]][k] ] = 4
+                    SOURCE[ data_tmp[galaxyid[0]][k] - 1] = 4
             
     else:
         twomatch_count +=1
@@ -218,12 +251,12 @@ print 'onematch_samplecount ',onematch_samplecount
 print 'twomatch_count ',twomatch_count
 print 'twomatch_samplecount ',twomatch_samplecount
 
-'''
+
 print 'start writing table file'
 ReadCatalog(4,catalog[4])              
-data[4]['850SOURCE'] = SOURCE
-data[4].write('COSMOS2015_Laigle+_v1.1_850sources_newerr.fits')
-'''
+data[4][SOURCE_COLUMN] = SOURCE
+data[4].write(OUTPUT_MAINCATALOG)
+
 
 #RegionFile(1,'850sources','green','4.0')
 
