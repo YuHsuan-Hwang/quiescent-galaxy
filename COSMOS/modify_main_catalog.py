@@ -27,14 +27,16 @@ def AddColumns():
 time1 = time.time()
 
 ###set catalog name
-inputcatalog = "COSMOS2015_Laigle+_v1.1_850wide+850narrow+450narrow"
+inputcatalog = "COSMOS2015_Laigle+_v1.1_850wide+850narrow+450narrow+24micron+3GHz+iragnallmir"
 #"COSMOS2015_Laigle+_v1.1_850sources"
 catalog = inputcatalog+".fits"
 
 ###set columns
 columns = [ "ALPHA_J2000", "DELTA_J2000", "NUMBER", "MNUV", "MR", "MJ", "PHOTOZ",\
            "V_MAGERR_APER3", "ip_MAGERR_APER3", "J_MAGERR_APER3", "Ks_MAGERR_APER3",\
-           "MASS_MED", "TYPE", "CLASS", "Ks_MAG_APER3", "850SOURCE","850NARROW","450NARROW" ]
+           "MASS_MED", "TYPE", "CLASS", "Ks_MAG_APER3",\
+           "850SOURCE","850NARROW","450NARROW","24MICRON","3GHZ", \
+           "IR_AGN_ALL","IR_AGN_MIR"]
 
 ###read catalog
 data = ReadCatalog(catalog)
