@@ -79,9 +79,10 @@ def PlotHist_photoz_para(indexlist,inputcolorlist,inputlabel,inputbins):
     for i in range(len(indexlist)):
         plotdata.append(data[indexlist[i]][photoz][mask[indexlist[i]]])
     plt.hist(plotdata, NBINS, color=inputcolorlist, alpha=0.7,label=inputlabel)
-    plt.title('Histogram photoz')
-    plt.ylabel('Number')
-    plt.xlabel('z')
+    plt.title('COSMOS2015')
+    plt.ylabel('Number', fontdict = {'fontsize' : 14})
+    plt.xlabel('z', fontdict = {'fontsize' : 14})
+    plt.xlim(0,3.5)
     plt.legend()
     plt.show()
     return
@@ -118,13 +119,16 @@ def Plot(index, scale, struc, limit, line, inputcolor, label, labelname):
     
     maskQG = mask[index] & Mask_myclassQG(index)
     maskSFG = mask[index] & Mask_myclassSFG(index)
+    plt.title(colorname1+colorname2+colorname3, fontdict = {'fontsize' : 16})
+    '''
     plt.title(colorname1+colorname2+colorname3+'\n'\
               +str(len(data[index].filled()[maskQG]))+' QGs ('+\
               str( "%.2f" % (len(data[index].filled()[maskQG])*100/Num_zbin_total(index)) )+'%), '\
               +str(len(data[index].filled()[maskSFG]))+' SFGs('+
               str( "%.2f" % (len(data[index].filled()[maskSFG])*100/Num_zbin_total(index)) )+'%)')
-    plt.xlabel(set_xlable)
-    plt.ylabel(set_ylable)
+    '''
+    plt.xlabel(set_xlable, fontdict = {'fontsize' : 14})
+    plt.ylabel(set_ylable, fontdict = {'fontsize' : 14})
     if (limit==1):
         plt.axis([-1.5,2,-1,7])
     if (scale==1):
@@ -894,7 +898,7 @@ Plot(1,0,0,1,1,'C1',1,'IR AGN (mir), '+str(Num_zbin_total(1))+' samples')
 plt.figure(3)
 Plot_zbin(1, 0, 0, 1, 1)
 '''
-
+'''
 number = 2
 catalog = [None]*1
 catalog[0] = 'COSMOS2015_Laigle+_v1.1_850wide+850narrow+450narrow+24micron+3GHz+iragnallmir_simple.fits' 
@@ -930,7 +934,7 @@ PlotHist_photoz_para([0,1],['C1','b'],labellist,20)
 plt.figure(2)#Plot_zbin(index, scale, struc, limit, line)
 Plot(0,0,0,1,1,'C1',1,'IR AGN (mir), '+str(Num_zbin_total(0))+' samples')
 Plot(1,0,0,1,1,'b',1,'with 3 GHz but without 24 micron, '+str(Num_zbin_total(1))+' samples')
-
+'''
 '''
 number = 2
 catalog = [None]*1
@@ -968,5 +972,120 @@ plt.figure(2)#Plot_zbin(index, scale, struc, limit, line)
 Plot(0,0,0,1,1,'C1',1,'IR AGN (mir), '+str(Num_zbin_total(0))+' samples')
 Plot(1,0,0,1,1,'g',1,'IR AGN with 24 micron detection, '+str(Num_zbin_total(1))+' samples')
 '''
+
+# 3 GHz AGN #
+'''
+number = 2
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+
+mask.append( (data[0]['3GHZ']==1)\
+        & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#\
+        #& Mask_myclassQG(0))
+mask.append(  (data[0]['HLAGN']==1)\
+        & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))#\
+        #& Mask_myclassQG(0))
+
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+plt.figure(1)
+labellist = ['3 GHz','HLAGN',]
+PlotHist_photoz_para([0,1],['C1','r'],labellist,20)
+
+plt.figure(2)#Plot_zbin(index, scale, struc, limit, line)
+Plot(0,0,1,1,1,'C1',1,'3GHz, '+str(Num_zbin_total(0))+' samples')
+Plot(1,0,0,1,1,'r',1,'HLAGN, '+str(Num_zbin_total(1))+' samples')
+'''
+
+# poster #
+'''
+number = 1
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))
+
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+fig = plt.figure(1)
+labellist = ['COSMOS2015']
+PlotHist_photoz_para([0],['C0'],labellist,20)
+#fig.savefig('COSMOS2015_hist.png', format='png', dpi=1200)
+
+fig = plt.figure(2)#Plot_zbin(index, scale, struc, limit, line)
+Plot(0,0,1,1,1,'C0',0,'COSMOS2015, '+str(Num_zbin_total(0))+' samples')
+#fig.savefig('COSMOS2015.png', format='png', dpi=1200)
+
+'''
+
+number = 3
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))
+mask.append( (data[0]['24MICRON']==1)\
+        & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))
+mask.append( (data[0]['3GHZ']==1)\
+        #((data[0]['450NARROW']==1)|(data[0]['24MICRON']==1)|(data[0]['SFG']==1))&(data[0]['HLAGN']!=1)
+        & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))
+
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+fig = plt.figure(1)
+labellist = ['COSMOS2015','24 micron',"3 GHz"]
+PlotHist_photoz_para([0,1,2],['C0','C1','r'],labellist,20)
+#fig.savefig('COSMOS2015_3_hist.png', format='png', dpi=1200)
+
+fig = plt.figure(2)#Plot_zbin(index, scale, struc, limit, line)
+Plot(0,0,1,1,1,'C0',0,'COSMOS2015, '+str(Num_zbin_total(0))+' samples')
+Plot(1,0,1,1,1,'C1',0,'24 micron, '+str(Num_zbin_total(1))+' samples')
+Plot(2,0,1,1,1,'r',0,"3GHz, "+str(Num_zbin_total(2))+' samples')
+fig.savefig('COSMOS2015_3.png', format='png', dpi=1200)
+
 time2 = time.time()
 print 'done! time =', time2-time1 , 'sec'
