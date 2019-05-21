@@ -398,7 +398,7 @@ print 'start writing table file'
 data[1][SOURCE_COLUMN] = data[0][galaxyid]
 data[1].write(OUTPUT_MAINCATALOG)
 '''
-
+'''
 CATALOG = "ca_mir_iragns.fits"
 ID = "NUMBER"
 SOURCE_COLUMN = "IR_AGN_MIR"
@@ -434,6 +434,67 @@ for i in range(len(data[0])):
         
 print 'start writing table file'            
 data[1][SOURCE_COLUMN] = SOURCE
+data[1].write(OUTPUT_MAINCATALOG)
+'''
+
+##################
+# 3 GHz catagory #
+##################
+
+CATALOG = "VLA_3GHz_counterpart_array_20170210_paper_smolcic_et_al.fits.txt" #3GHz in COSMOS2015
+ID = "ID_CPT"
+SOURCE_COLUMN = ["Xray_AGN","MIR_AGN","SED_AGN","Quiescent_MLAGN","SFG","Clean_SFG",\
+                 "HLAGN","MLAGN","Radio_excess"]
+INPUT_MAINCATALOG = "COSMOS2015_Laigle+_v1.1_850wide+850narrow+450narrow+24micron+3GHz+iragnallmir.fits" #COSMOS2015
+OUTPUT_MAINCATALOG = 'COSMOS2015_Laigle+_v1.1_5band_2agn_9cat.fits'
+print '3GHz'
+
+###set catalog names
+number = 2
+catalog = [None]*number
+catalog[0] = CATALOG
+catalog[1] = INPUT_MAINCATALOG
+
+###set ID column names
+galaxyid = ID
+
+###read catalog
+data = [None]*number
+for i in range(number):
+    ReadCatalog(i,catalog[i])
+
+print 'len(data[0]) ',len(data[0])
+
+mask = (data[0]['CAT_CPT']=='COSMOS2015     ')
+data0_tmp = data[0][mask]
+print 'len(mask_data0) ',len(data0_tmp)
+
+time2 = time.time()
+print 'current time :', (time2-time1)/60.0 , 'min'
+print 'loop start'
+
+for i in range(len(SOURCE_COLUMN)):
+    
+    SOURCE = [-99]*len( data[1].filled() )
+    for j in range(len(data0_tmp)):
+        
+        if data0_tmp[SOURCE_COLUMN[i]][j].strip()=="true":
+            if SOURCE[ data0_tmp[galaxyid][j] -1 ]==1:
+                print "!!!",data0_tmp[galaxyid][j]-1,"!!!already tagged"
+            else:
+                SOURCE[ data0_tmp[galaxyid][j] -1 ] = 1
+                
+        else: #if (data0_tmp[SOURCE_COLUMN[i]][j]==False):
+            if SOURCE[ data0_tmp[galaxyid][j] -1 ]==0:
+                print "!!!",data0_tmp[galaxyid][j]-1,"!!!already tagged"
+            else:
+                SOURCE[ data0_tmp[galaxyid][j] -1 ] = 0
+        #else:
+            #print "!!!",data0_tmp[SOURCE_COLUMN[i]][j],"!!!undefined"
+        
+    data[1][SOURCE_COLUMN[i]] = SOURCE
+
+print 'start writing table file'            
 data[1].write(OUTPUT_MAINCATALOG)
 
 #RegionFile(1,'850sources','green','4.0')
