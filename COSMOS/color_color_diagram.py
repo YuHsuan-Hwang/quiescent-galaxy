@@ -12,6 +12,8 @@ from __future__ import division
 import time
 from astropy.table import Table
 import matplotlib.pyplot as plt
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 # =============================================================================
 # functions
 # =============================================================================
@@ -40,7 +42,7 @@ def Mask_error(mode,inputup,index):
         mask_Ks_error = (data[index][Ks_error]<up) & (data[index][Ks_error]>0)
         return mask_V_errorV | mask_ip_error | mask_J_error | mask_Ks_error
     if mode==2:
-        return (data[index][Ks_error]<up) & (data[index][Ks_error]>0)
+        return (data[index][V_error]<up) & (data[index][V_error]>0)
     if mode==3:
         return (data[index][Ks_mag]<24)
     
@@ -49,7 +51,7 @@ def Mask_photoz(index):
     return (data[index][photoz]>0) & (data[index][photoz]<8)
 
 def Mask_class_star(index):
-    return (data[index][class_star]==0)
+    return (data[index][class_star]==0) ############################################
 
 def Mask_classQG(index):
     return (data[index][class_SFG]==0)
@@ -59,6 +61,9 @@ def Mask_myclassQG(index):
     return (y[index]>3.1) & (y[index]>3.0*x[index]+1.0)
 def Mask_myclassSFG(index):
     return (y[index]<=3.1) | (y[index]<=3.0*x[index]+1.0)
+
+def Mask_mass(index):
+    return (data[index][mass]>11.0)
 
 #def Mask_mass(index,low,high):
 #    return (data[index][mass]<high) & (data[index][mass]>low)
@@ -100,6 +105,29 @@ def PlotHist_M(index):
         if (i==2):
             plt.xlabel('magnitude')
         plt.legend(frameon=False,loc=1)
+    plt.show()
+    return
+
+def PlotHist_mass(index,inputcolor,inputbins,labelname):
+    NBINS = inputbins
+    plt.hist(data[index][mass][mask[index]], NBINS, color=inputcolor, alpha=0.8, label = labelname)
+    plt.title('Histogram mass')
+    plt.ylabel('Number')
+    plt.xlabel('log(mass)')
+    plt.legend()
+    plt.show()
+    return
+
+def PlotHist_mass_para(indexlist,inputcolorlist,inputlabel,inputbins):
+    NBINS = inputbins
+    plotdata = []
+    for i in range(len(indexlist)):
+        plotdata.append(data[indexlist[i]][mass][mask[indexlist[i]]])
+    plt.hist(plotdata, NBINS, color=inputcolorlist, alpha=0.7,label=inputlabel)
+    plt.title('COSMOS2015')
+    plt.ylabel('Number', fontdict = {'fontsize' : 14})
+    plt.xlabel('log(mass)', fontdict = {'fontsize' : 14})
+    plt.legend()
     plt.show()
     return
 
@@ -166,7 +194,7 @@ def Construct_zbin_title():
     zbin_title.append('$3.5<z<4$')
     return zbin_title
 
-def Plot_zbin(index, scale, struc, limit, line):
+def Plot_zbin(index, scale, struc, limit, line, inputcolor,labelname):
     if (struc==1):
         set_s = 0.5
         set_alpha = 0.1
@@ -179,10 +207,18 @@ def Plot_zbin(index, scale, struc, limit, line):
     for i in range(8):
         plt.subplot(2, 4, i+1)
         datamask = mask[index] & mask_zbin[i]
+        datamaskQG = mask[index] & mask_zbin[i] & Mask_myclassQG(index)
+        datamask1 = mask[1] & mask_zbin[i]
+        datamaskQG1 = mask[1] & mask_zbin[i] & Mask_myclassQG(1)
         datax = x[index][datamask]
         datay = y[index][datamask]
-        plt.scatter( datax, datay, s=set_s, alpha=set_alpha)
-        plt.title(zbin_title[i])
+        plt.scatter( datax, datay, s=set_s, alpha=set_alpha,color=inputcolor, label=labelname)
+        print len(x[index][datamaskQG].filled())
+        if len(x[index][datamask].filled())==0:
+            plt.title(zbin_title[i]+', 0.00%')
+        else:
+            plt.title(zbin_title[i]+', '+\
+                      str( "%.2f" % ((len(x[index][datamaskQG].filled()))*100.0/len(x[index][datamask].filled())) )+'%')
         if ((i==4) | (i==5) | (i==6) | (i==7)):
             plt.xlabel(set_xlable)
         if ((i==0) | (i==4)):
@@ -193,6 +229,7 @@ def Plot_zbin(index, scale, struc, limit, line):
             plt.axis('scaled')
         if (line==1):
             DrawLine()
+        plt.legend()
     plt.show()
     return
 
@@ -240,7 +277,9 @@ def RegionFile(index,filename,color,size):
     print N
     for n in range(N):
         #f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={'+str(n)+'}\n')
-        f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={''}\n')
+        #f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={''}\n')
+        f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={'+str(data[index][photoz][mask[index]][n])+'}\n')
+        #f.write('fk5;circle('+str(data[index][ra][mask[index]][n])+','+str(data[index][dec][mask[index]][n])+','+size+'") # text={'+str(data[index]["NUMBER"][mask[index]][n])+'}\n')
     f.close()
 
 def PlotMatchedResult(matchedband):
@@ -323,6 +362,7 @@ class_star = "TYPE"
 class_SFG = "CLASS"
 ra = "ALPHA_J2000"
 dec = "DELTA_J2000"
+mass = "MASS_BEST"
 
 set_xlable = '$M_{'+colorname2+'}-M_{'+colorname3+'}$'
 set_ylable = '$M_{'+colorname1+'}-M_{'+colorname2+'}$' 
@@ -1047,7 +1087,7 @@ Plot(0,0,1,1,1,'C0',0,'COSMOS2015, '+str(Num_zbin_total(0))+' samples')
 #fig.savefig('COSMOS2015.png', format='png', dpi=1200)
 
 '''
-
+'''
 number = 3
 catalog = [None]*1
 catalog[0] = 'COSMOS2015_Laigle+_v1.1_5band_2agn_9cat_simple.fits' 
@@ -1064,7 +1104,6 @@ for i in range(number):
 mask = []
 x_masked = []
 y_masked = []
-
 mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))
 mask.append( (data[0]['24MICRON']==1)\
         & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))
@@ -1085,7 +1124,280 @@ fig = plt.figure(2)#Plot_zbin(index, scale, struc, limit, line)
 Plot(0,0,1,1,1,'C0',0,'COSMOS2015, '+str(Num_zbin_total(0))+' samples')
 Plot(1,0,1,1,1,'C1',0,'24 micron, '+str(Num_zbin_total(1))+' samples')
 Plot(2,0,1,1,1,'r',0,"3GHz, "+str(Num_zbin_total(2))+' samples')
-fig.savefig('COSMOS2015_3.png', format='png', dpi=1200)
+#fig.savefig('COSMOS2015_3.png', format='png', dpi=1200)
+'''
+
+# 450 detected QGs case study #
+
+number = 2
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5+2band_2agn_9cat_ALMA4_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+CENTER_RA,CENTER_DEC = '10h00m25.0s', '2d24m22.0s'
+RADIUS = 0.2*u.degree
+def MaskRegion(index,inputra,inputdec,inputradius):
+    c0 = SkyCoord(ra=data[index][ra], dec=data[index][dec])
+    center = SkyCoord(inputra, inputdec, frame='fk5')
+    radius = inputradius
+    sep = center.separation(c0)
+    return sep<=radius
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+
+#mask_tmp = (data[0]['FLAG_HJMCC']==0) &(data[0]['FLAG_PETER']==0)& (data[0]['FLAG_COSMOS']==1)
+
+#mask.append( Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0) \
+#            & Mask_myclassQG(0) & (data[0]['ALMA_10']==1) & (data[0]['ALMA_05']==0))
+mask.append(   Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0) \
+             &(data[0]["MIR_AGN"]==1))
+#Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0)
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0) \
+             &(data[0]["MIR_AGN"]==1)&(data[0]["850WIDE_ALMA_10"]==1))#
+#'10h01m42.2187s','1d40m35.795s',0.05*u.degree
+#1 '10h01m32.1382s','2d04m28.354s'
+#2 '9h58m51.6261s','2d03m51.510s'
+#3 '10h02m24.0136s','2d38m23.892s'
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+#plt.figure(1)
+Plot(0, 0, 0, 1, 1, 'lightcoral', 1,'MIR AGN", '+str(Num_zbin_total(0))+' samples')
+Plot(1, 0, 0, 1, 1, 'black', 1,'850 detected, '+str(Num_zbin_total(1))+' samples')
+#plt.figure(1)
+#labellist = ['3 with 24','3 without 24']
+#PlotHist_photoz_para([0,1],['C0','g'],labellist,10)
+
+#RegionFile(0, 'COSMOS_HLAGN_QGonlyone', 'yellow','10.0')
+#RegionFile(1, 'COSMOS_SFG_Kselected_z', 'orange','1.0')
+#RegionFile(2, 'COSMOS_all_SFG_z', 'pink','0.8')
+#RegionFile(3, 'COSMOS_450QG_simple', 'yellow','0.8')
+
+'''
+number = 1
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+mask.append( (data[0]['450NARROW']!=0)\
+            &Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)\
+            &Mask_myclassQG(0))
+
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+fig = plt.figure(1)
+labellist = ['450QG']
+PlotHist_photoz_para([0],['g'],labellist,5)
+
+fig = plt.figure(2)#Plot_zbin(index, scale, struc, limit, line)
+Plot(0,0,0,1,1,'g',0,'450QG, '+str(Num_zbin_total(0))+' samples')
+num_array = range( Num_zbin_total(0) )
+for i in num_array:
+    plt.text(x_masked[0][i]-0.05, y_masked[0][i], i, fontsize=6)
+'''
+'''
+number = 2
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+mask.append( (data[0]['HLAGN']==1)\
+            & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)\
+            & Mask_myclassQG(0) )
+mask.append( (data[0]['HLAGN']==1)\
+            & Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0))
+
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+fig = plt.figure(1)
+labellist = ['3GHZ QG, '+str(Num_zbin_total(0))+' samples']
+PlotHist_photoz_para([0],['r'],labellist,20)
+
+fig = plt.figure(2)
+Plot_zbin(1, 0, 0, 1, 1, 'r')
+'''
+'''
+number = 5
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5+2band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+mask.append(  Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)\
+            & Mask_mass(0) )#& Mask_myclassQG(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)\
+            & (data[0]['3GHZ']==1) & (data[0]['Clean_SFG']!=1) & Mask_mass(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)\
+            & (data[0]['3GHZ']==1) & (data[0]['HLAGN']==1) & Mask_mass(0))#& Mask_myclassQG(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)\
+            & (data[0]['3GHZ']==1) & (data[0]['MLAGN']==1) & Mask_mass(0))#& Mask_myclassQG(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0)\
+            & (data[0]['3GHZ']==1) & Mask_mass(0))
+
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+fig = plt.figure(1)
+#PlotHist_mass(1,'C0',30,'COSMOS2015')
+#PlotHist_mass_para([2,3],['r','g'],['HLAGN','MLAGN'],30)
+
+#fig = plt.figure(2)
+#Plot(0, 0, 1, 1, 1, 'C0',1,'all, '+str(Num_zbin_total(0))+' samples')
+#Plot(1, 0, 0, 1, 1, 'k',1,'AGN, '+str(Num_zbin_total(1))+' samples')
+#Plot(2, 0, 0, 1, 1, 'r',1,'HLAGN, '+str(Num_zbin_total(2))+' samples')
+#Plot(3, 0, 0, 1, 1, 'darkgreen',1,'MLAGN, '+str(Num_zbin_total(3))+' samples')
+#Plot(4, 0, 0, 1, 1, 'C1',1,'3 GHz, '+str(Num_zbin_total(4))+' samples')
+
+#fig = plt.figure(3)
+#Plot_zbin(0, 0, 0, 1, 1, 'C0','all')
+#Plot_zbin(2, 0, 0, 1, 1, 'r','HLAGN')
+#fig = plt.figure(4)
+#Plot_zbin(3, 0, 0, 1, 1, 'g','MLAGN')
+'''
+
+# 850 region file #
+'''
+number = 1
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5+1band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+mask.append( (data[0]['850SOURCE']!=0)&Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) & Mask_myclassQG(0))
+
+RegionFile(0, 'COSMOS_850wideQG', 'yellow','15.0')
+'''
+'''
+number = 1
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5+2band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+    
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+mask.append( (data[0]['850WIDE_SIMPLE']==1)&Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) & Mask_myclassQG(0))
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+    
+Plot(0,0,0,1,1,'magenta',0,'850QG, '+str(Num_zbin_total(0))+' samples')
+print Num_zbin_total(0)
+'''
+'''
+number = 3
+catalog = [None]*1
+catalog[0] = 'COSMOS2015_Laigle+_v1.1_5+2band_2agn_9cat_simple.fits' 
+
+###read catalog
+data = [None]*number
+x = [None]*number
+y = [None]*number
+
+for i in range(number):
+    ReadCatalog(i,catalog[0])
+
+###mask data
+mask = []
+x_masked = []
+y_masked = []
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) )
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) & Mask_myclassQG(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) \
+            & (data[0]['3GHZ']==1) & (data[0]['Clean_SFG']!=1))
+for i in range(number):
+    x_masked.append(x[i][mask[i]])
+    y_masked.append(y[i][mask[i]])
+
+
+plt.figure(1,figsize=(10,6))
+set_s = 0.1
+set_alpha = 1
+#plt.scatter( data[0][mask[0]][photoz], data[0][mask[0]][mass], s=set_s, alpha=set_alpha,color='C0', label='all')
+plt.scatter( data[1][mask[1]][photoz], data[1][mask[1]][mass], s=0.3, alpha=set_alpha,color='k', label='QG')
+plt.scatter( data[2][mask[2]][photoz], data[2][mask[2]][mass], s=0.3, alpha=set_alpha,color='C1', label='AGN')
+
+zbin1 = [0.175,0.5,0.8,1.125,1.475,2.0,2.5,3.0,3.75]
+zbin2 = [0.175,0.5,0.8,1.125,1.475,2.0,2.5,3.0,3.75,4.4]
+m_lim_QG = [8.4,9.0,9.4,9.6,9.9,10.1,10.3,10.4,10.5]
+m_lim_all = [8.1,8.7,9.1,9.3,9.7,9.9,10.0,10.1,10.1,10.1]
+plt.plot( zbin1, m_lim_QG, 'o-C3', label='QG mass limit Laigle(2016)', mfc='none')
+#plt.plot( zbin2, m_lim_all, 'o-C1', label='all mass limit Laigle(2016)', mfc='none')
+
+plt.title('mass v.s. redshift', fontdict = {'fontsize' : 16})
+plt.xlabel('z', fontdict = {'fontsize' : 14})
+plt.ylabel('log(mass)', fontdict = {'fontsize' : 14})
+plt.legend()
+plt.show()
+'''
+
+
+
 
 time2 = time.time()
 print 'done! time =', time2-time1 , 'sec'
