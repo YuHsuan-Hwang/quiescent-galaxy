@@ -14,6 +14,7 @@ from astropy.table import Table
 import matplotlib.pyplot as plt
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+import numpy as np
 # =============================================================================
 # functions
 # =============================================================================
@@ -48,10 +49,10 @@ def Mask_error(mode,inputup,index):
     
 
 def Mask_photoz(index):
-    return (data[index][photoz]>0) & (data[index][photoz]<8)
+    return (data[index][photoz]>0) #& (data[index][photoz]<8)
 
 def Mask_class_star(index):
-    return (data[index][class_star]==0) ############################################
+    return (data[index][class_star]==0) | (data[index][class_star]==2)###
 
 def Mask_classQG(index):
     return (data[index][class_SFG]==0)
@@ -63,7 +64,7 @@ def Mask_myclassSFG(index):
     return (y[index]<=3.1) | (y[index]<=3.0*x[index]+1.0)
 
 def Mask_mass(index):
-    return (data[index][mass]>11.0)
+    return (data[index][mass]>11)
 
 #def Mask_mass(index,low,high):
 #    return (data[index][mass]<high) & (data[index][mass]>low)
@@ -141,24 +142,25 @@ def Plot(index, scale, struc, limit, line, inputcolor, label, labelname):
         set_s = 0.5
         set_alpha = 0.1
     else:
-        set_s = 1
+        set_s = 1.5
         set_alpha = 1
     plt.scatter( x_masked[index], y_masked[index], s=set_s, alpha=set_alpha,color=inputcolor, label=labelname)
     
     maskQG = mask[index] & Mask_myclassQG(index)
     maskSFG = mask[index] & Mask_myclassSFG(index)
-    plt.title(colorname1+colorname2+colorname3, fontdict = {'fontsize' : 16})
-    '''
+    #plt.title(colorname1+colorname2+colorname3, fontdict = {'fontsize' : 16})
+    
     plt.title(colorname1+colorname2+colorname3+'\n'\
               +str(len(data[index].filled()[maskQG]))+' QGs ('+\
               str( "%.2f" % (len(data[index].filled()[maskQG])*100/Num_zbin_total(index)) )+'%), '\
               +str(len(data[index].filled()[maskSFG]))+' SFGs('+
               str( "%.2f" % (len(data[index].filled()[maskSFG])*100/Num_zbin_total(index)) )+'%)')
-    '''
+    
     plt.xlabel(set_xlable, fontdict = {'fontsize' : 14})
     plt.ylabel(set_ylable, fontdict = {'fontsize' : 14})
     if (limit==1):
-        plt.axis([-1.5,2,-1,7])
+        #plt.axis([-1.5,2,-1,7])
+        plt.axis([-0.5,2,-1,7])
     if (scale==1):
         plt.axis('scaled')
     if (line==1):
@@ -167,6 +169,30 @@ def Plot(index, scale, struc, limit, line, inputcolor, label, labelname):
         plt.legend()
     plt.show()
     return
+
+def PrintQGfraction(index):
+    maskQG = mask[index] & Mask_myclassQG(index)
+    all_num = Num_zbin_total(index)
+    QG_num = len(data[index].filled()[maskQG])
+    print all_num, QG_num
+    fraction = QG_num*100.0 / all_num
+    error =  100.0  / np.sqrt(all_num )
+    #error = np.sqrt( (1/QG_num)*100.0/all_num )
+    #error = 100.0 / all_num * np.sqrt( (1/QG_num)+(QG_num**2/all_num**3) )
+    return fraction, error
+
+
+def PrintAGNfraction(index):
+    maskQG = mask[1]
+    maskAGN = mask[index] & Mask_myclassSFG(index)
+    AGN_num = len(data[index].filled()[maskAGN])
+    QG_all_num = len(data[index].filled()[maskQG])
+    print AGN_num, QG_all_num
+    fraction = AGN_num*100.0 / QG_all_num
+    error =  100.0  / np.sqrt(QG_all_num)
+    #error = np.sqrt( (1/QG_num)*100.0/all_num )
+    #error = 100.0 / all_num * np.sqrt( (1/QG_num)+(QG_num**2/all_num**3) )
+    return fraction, error
 
 
 def Construct_mask_zbin(index):
@@ -178,7 +204,7 @@ def Construct_mask_zbin(index):
     mask_zbin.append((data[index][photoz]>2) & (data[index][photoz]<2.5))
     mask_zbin.append((data[index][photoz]>2.5) & (data[index][photoz]<3))
     mask_zbin.append((data[index][photoz]>3) & (data[index][photoz]<3.5))
-    mask_zbin.append((data[index][photoz]>3.5) & (data[index][photoz]<4))
+    mask_zbin.append((data[index][photoz]>3.5))
     #mask_zbin.append((data[index][photoz]>3) & (data[index][photoz]<4))
     return mask_zbin
 
@@ -191,7 +217,7 @@ def Construct_zbin_title():
     zbin_title.append('$2<z<2.5$')
     zbin_title.append('$2.5<z<3$')
     zbin_title.append('$3<z<3.5$')
-    zbin_title.append('$3.5<z<4$')
+    zbin_title.append('$z>3.5$')
     return zbin_title
 
 def Plot_zbin(index, scale, struc, limit, line, inputcolor,labelname):
@@ -213,11 +239,11 @@ def Plot_zbin(index, scale, struc, limit, line, inputcolor,labelname):
         datax = x[index][datamask]
         datay = y[index][datamask]
         plt.scatter( datax, datay, s=set_s, alpha=set_alpha,color=inputcolor, label=labelname)
-        print len(x[index][datamaskQG].filled())
+        #print len(x[index][datamaskQG].filled())
         if len(x[index][datamask].filled())==0:
             plt.title(zbin_title[i]+', 0.00%')
         else:
-            plt.title(zbin_title[i]+', '+\
+            plt.title(zbin_title[i]+', '+str(len(x[index][datamask].filled()))+', '+\
                       str( "%.2f" % ((len(x[index][datamaskQG].filled()))*100.0/len(x[index][datamask].filled())) )+'%')
         if ((i==4) | (i==5) | (i==6) | (i==7)):
             plt.xlabel(set_xlable)
@@ -232,6 +258,26 @@ def Plot_zbin(index, scale, struc, limit, line, inputcolor,labelname):
         plt.legend()
     plt.show()
     return
+
+def Print_zbin_QGfraction(index):
+    fraction = []
+    error = []
+    mask_zbin = Construct_mask_zbin(index)
+    for i in range(8):
+        datamask = mask[index] & mask_zbin[i]
+        datamaskQG = mask[index] & mask_zbin[i] & Mask_myclassQG(index)
+        all_num = len(x[index][datamask].filled())
+        QG_num = len(x[index][datamaskQG].filled())
+        
+        if (all_num==0)|(QG_num==0):
+            fraction.append(0.0)
+            error.append(0.0)
+        else:
+            fraction.append(QG_num*100.0/all_num)
+            error.append( 100.0  / np.sqrt(all_num ) )
+            #error.append(100.0 / all_num * np.sqrt( (1/QG_num)+(QG_num**2/all_num**3) ))
+            print  all_num, QG_num, error[i]
+    return fraction, error
 
 def PrintNum_zbin(index):
     mask_zbin = Construct_mask_zbin(index)
@@ -351,7 +397,7 @@ color1 = "MNUV"
 color2 = "MR"
 color3 = "MJ"
 color = [ color1, color2, color3 ]
-photoz = "PHOTOZ"
+photoz = "REDSHIFT"
 V_error = "V_MAGERR_APER3"
 ip_error = "ip_MAGERR_APER3"
 J_error = "J_MAGERR_APER3"
@@ -1128,10 +1174,10 @@ Plot(2,0,1,1,1,'r',0,"3GHz, "+str(Num_zbin_total(2))+' samples')
 '''
 
 # 450 detected QGs case study #
-
+'''
 number = 2
 catalog = [None]*1
-catalog[0] = 'COSMOS2015_Laigle+_v1.1_5+2band_2agn_9cat_ALMA4_simple.fits' 
+catalog[0] = 'COSMOS2015_merged.fits' 
 
 ###read catalog
 data = [None]*number
@@ -1157,24 +1203,29 @@ y_masked = []
 
 #mask_tmp = (data[0]['FLAG_HJMCC']==0) &(data[0]['FLAG_PETER']==0)& (data[0]['FLAG_COSMOS']==1)
 
-#mask.append( Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0) \
-#            & Mask_myclassQG(0) & (data[0]['ALMA_10']==1) & (data[0]['ALMA_05']==0))
-mask.append(   Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0) \
-             &(data[0]["MIR_AGN"]==1))
 #Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0)
-mask.append( Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0) \
-             &(data[0]["MIR_AGN"]==1)&(data[0]["850WIDE_ALMA_10"]==1))#
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0))
+mask.append(Mask_M(0) & Mask_photoz(0) & Mask_class_star(0) & Mask_error(1,0.1,0) & (data[0]['agn_c17b']==True))
+
+#(data[0]['3GHZ']==1) & (data[0]['Clean_SFG']!=1)
+
 #'10h01m42.2187s','1d40m35.795s',0.05*u.degree
 #1 '10h01m32.1382s','2d04m28.354s'
 #2 '9h58m51.6261s','2d03m51.510s'
 #3 '10h02m24.0136s','2d38m23.892s'
+
 for i in range(number):
     x_masked.append(x[i][mask[i]])
     y_masked.append(y[i][mask[i]])
 
 #plt.figure(1)
-Plot(0, 0, 0, 1, 1, 'lightcoral', 1,'MIR AGN", '+str(Num_zbin_total(0))+' samples')
-Plot(1, 0, 0, 1, 1, 'black', 1,'850 detected, '+str(Num_zbin_total(1))+' samples')
+#Plot(0, 0, 1, 1, 1, 'C0', 1,'IRAGN, '+str(Num_zbin_total(0))+' samples')
+#Plot(1, 0, 0, 1, 1, 'C1', 1,'ALMA, '+str(Num_zbin_total(1))+' samples')
+PlotHist_mass(1,"C1",20,"")
+
+#Plot(2, 0, 0, 1, 1, 'darkseagreen', 1,'no counterpart, '+str(Num_zbin_total(2))+' samples')
+
+#Plot(1, 0, 0, 1, 1, 'black', 1,'850 detected, '+str(Num_zbin_total(1))+' samples')
 #plt.figure(1)
 #labellist = ['3 with 24','3 without 24']
 #PlotHist_photoz_para([0,1],['C0','g'],labellist,10)
@@ -1183,6 +1234,9 @@ Plot(1, 0, 0, 1, 1, 'black', 1,'850 detected, '+str(Num_zbin_total(1))+' samples
 #RegionFile(1, 'COSMOS_SFG_Kselected_z', 'orange','1.0')
 #RegionFile(2, 'COSMOS_all_SFG_z', 'pink','0.8')
 #RegionFile(3, 'COSMOS_450QG_simple', 'yellow','0.8')
+'''
+
+
 
 '''
 number = 1
@@ -1349,10 +1403,10 @@ for i in range(number):
 Plot(0,0,0,1,1,'magenta',0,'850QG, '+str(Num_zbin_total(0))+' samples')
 print Num_zbin_total(0)
 '''
-'''
-number = 3
+
+number = 5
 catalog = [None]*1
-catalog[0] = 'COSMOS2015_Laigle+_v1.1_5+2band_2agn_9cat_simple.fits' 
+catalog[0] = 'COSMOS2015_merged.fits' 
 
 ###read catalog
 data = [None]*number
@@ -1366,28 +1420,82 @@ for i in range(number):
 mask = []
 x_masked = []
 y_masked = []
-mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) )
-mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) & Mask_myclassQG(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) &Mask_mass(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) & Mask_myclassSFG(0)&Mask_mass(0))
 mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) \
-            & (data[0]['3GHZ']==1) & (data[0]['Clean_SFG']!=1))
+            & (data[0]['Radio_excess']==1) &Mask_mass(0))
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) \
+            & (data[0]['agn_c17b']==True)&Mask_mass(0) )
+mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) \
+            & (data[0]['agn_xxx']==True) &Mask_mass(0))
+
+#& Mask_mass(0)
+
 for i in range(number):
     x_masked.append(x[i][mask[i]])
     y_masked.append(y[i][mask[i]])
 
 
+'''
+plt.figure(1)
+Plot(0, 0, 1, 1, 1, 'C0', 1,'all, '+str(Num_zbin_total(0))+' samples')
+plt.figure(2)
+Plot(2, 0, 0, 1, 1, 'C1', 1,'radio AGN, '+str(Num_zbin_total(2))+' samples')
+plt.figure(3)
+Plot(3, 0, 0, 1, 1, 'g', 1,'IR AGN, '+str(Num_zbin_total(3))+' samples')
+plt.figure(4)
+Plot(4, 0, 0, 1, 1, 'r', 1,'X-ray AGN, '+str(Num_zbin_total(4))+' samples')
+'''
+
+
+#Plot(5, 0, 0, 1, 1, 'r', 1,'HLAGN, '+str(Num_zbin_total(5))+' samples')
+'''
+plt.figure(1)
+PlotHist_mass(2,'C1',30,'radio AGN')
+plt.figure(2)
+PlotHist_mass(3,'g',30,'IR AGN')
+plt.figure(3)
+PlotHist_mass(4,'r',30,'X-ray')
+'''
+'''
+plt.figure(1)
+Plot_zbin(0, 0, 0, 1, 1, 'C0','all')
+print "all"
+#plt.figure(2)
+#Plot_zbin(1, 0, 0, 1, 1, 'k','QG')
+#print "QG"
+#PrintNum_zbin(1)
+plt.figure(3)
+Plot_zbin(2, 0, 0, 1, 1, 'C1','radio AGN')
+print "radio AGN"
+#PrintNum_zbin(2)
+plt.figure(4)
+Plot_zbin(3, 0, 0, 1, 1, 'g','IR AGN')
+#print "IR AGN"
+#PrintNum_zbin(5)
+plt.figure(5)
+Plot_zbin(4, 0, 0, 1, 1, 'r','X-ray AGN')
+#print "X-ray AGN"
+#PrintNum_zbin(4)
+'''
+
+'''
 plt.figure(1,figsize=(10,6))
 set_s = 0.1
 set_alpha = 1
 #plt.scatter( data[0][mask[0]][photoz], data[0][mask[0]][mass], s=set_s, alpha=set_alpha,color='C0', label='all')
 plt.scatter( data[1][mask[1]][photoz], data[1][mask[1]][mass], s=0.3, alpha=set_alpha,color='k', label='QG')
-plt.scatter( data[2][mask[2]][photoz], data[2][mask[2]][mass], s=0.3, alpha=set_alpha,color='C1', label='AGN')
+plt.scatter( data[2][mask[2]][photoz], data[2][mask[2]][mass], s=0.3, alpha=set_alpha,color='C1', label='radio AGN')
+#plt.scatter( data[3][mask[3]][photoz], data[3][mask[3]][mass], s=0.3, alpha=set_alpha,color='C1', label='IR AGN')
+#plt.scatter( data[4][mask[4]][photoz], data[4][mask[4]][mass], s=0.3, alpha=set_alpha,color='C1', label='X-ray AGN')
 
 zbin1 = [0.175,0.5,0.8,1.125,1.475,2.0,2.5,3.0,3.75]
 zbin2 = [0.175,0.5,0.8,1.125,1.475,2.0,2.5,3.0,3.75,4.4]
 m_lim_QG = [8.4,9.0,9.4,9.6,9.9,10.1,10.3,10.4,10.5]
 m_lim_all = [8.1,8.7,9.1,9.3,9.7,9.9,10.0,10.1,10.1,10.1]
-plt.plot( zbin1, m_lim_QG, 'o-C3', label='QG mass limit Laigle(2016)', mfc='none')
 #plt.plot( zbin2, m_lim_all, 'o-C1', label='all mass limit Laigle(2016)', mfc='none')
+plt.plot( zbin1, m_lim_QG, 'o-C3', label='QG mass limit Laigle(2016)', mfc='none')
+
 
 plt.title('mass v.s. redshift', fontdict = {'fontsize' : 16})
 plt.xlabel('z', fontdict = {'fontsize' : 14})
@@ -1395,6 +1503,104 @@ plt.ylabel('log(mass)', fontdict = {'fontsize' : 14})
 plt.legend()
 plt.show()
 '''
+
+'''
+fig, axes = plt.subplots()
+
+plt.setp(axes, xticks=[y_axes+1 for y_axes in range(5)], xticklabels=['all', 'radio AGN', 'IR AGN', 'X-ray AGN'])
+
+fraction, error = PrintQGfraction(0)
+print fraction, error
+plt.errorbar(1,fraction,error,color='C0', fmt='o', capsize=5)
+plt.text(1.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintQGfraction(2)
+print fraction, error
+plt.errorbar(2,fraction,error,color='C1', fmt='o', capsize=5)
+plt.text(2.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintQGfraction(3)
+print fraction, error
+plt.errorbar(3,fraction,error,color='g', fmt='o', capsize=5)
+plt.text(3.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintQGfraction(4)
+print fraction, error
+plt.errorbar(4,fraction,error,color='r', fmt='o', capsize=5)
+plt.text(4.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+
+#axes.plot([1,2,3,4],[51.51,57.65,20.61,31.33],'o',['C0','C1','g','r'])
+plt.axis([0,5,0,70])
+plt.title('QG percentage, mass>10^10.5', fontdict = {'fontsize' : 16})
+plt.ylabel('%', fontdict = {'fontsize' : 14})
+plt.show()
+'''
+
+'''
+fig, axes = plt.subplots()
+
+zbin = [0.25,0.75,1.25,1.75,2.25,2.75,3.25,3.75]
+
+fraction, error = Print_zbin_QGfraction(0)
+plt.errorbar(zbin,fraction,error,fmt='o-',color='C0',label='all', capsize=5)
+
+fraction, error = Print_zbin_QGfraction(2)
+a=0.02
+zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
+plt.errorbar(zbin,fraction,error,fmt='o-',color='C1',label='radio AGN', capsize=5)
+
+fraction, error = Print_zbin_QGfraction(3)
+a=0.04
+zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
+plt.errorbar(zbin,fraction,error,fmt='o-',color='g',label='IR AGN', capsize=5)
+
+fraction, error = Print_zbin_QGfraction(4)
+a=0.06
+zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
+plt.errorbar(zbin,fraction,error,fmt='o-',color='r',label='X-Ray AGN', capsize=5)
+
+plt.title('QG percentage, mass>10^10.5', fontdict = {'fontsize' : 16})
+plt.xlabel('z', fontdict = {'fontsize' : 14})
+plt.ylabel('%', fontdict = {'fontsize' : 14})
+plt.legend()
+plt.show()
+'''
+
+
+
+fig, axes = plt.subplots()
+
+plt.setp(axes, xticks=[y_axes+1 for y_axes in range(5)], xticklabels=['all', 'radio AGN', 'IR AGN', 'X-ray AGN'])
+
+fraction, error = PrintAGNfraction(0)
+print fraction, error
+plt.errorbar(1,fraction,error,color='C0', fmt='o', capsize=5)
+plt.text(1.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintAGNfraction(2)
+print fraction, error
+plt.errorbar(2,fraction,error,color='C1', fmt='o', capsize=5)
+plt.text(2.0-0.2, fraction-error+5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintAGNfraction(3)
+print fraction, error
+plt.errorbar(3,fraction,error,color='g', fmt='o', capsize=5)
+plt.text(3.0-0.2, fraction-error+5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintAGNfraction(4)
+print fraction, error
+plt.errorbar(4,fraction,error,color='r', fmt='o', capsize=5)
+plt.text(4.0-0.2, fraction-error+5.5, str("%.2f" % fraction), fontsize=10)
+
+
+#axes.plot([1,2,3,4],[51.51,57.65,20.61,31.33],'o',['C0','C1','g','r'])
+plt.axis([0,5,0,100])
+plt.title('AGN/SFG, mass>10^11', fontdict = {'fontsize' : 16})
+plt.ylabel('%', fontdict = {'fontsize' : 14})
+plt.show()
+
+
 
 
 
