@@ -101,7 +101,9 @@ def Matching_24Micron():
 def Matching_3GHz():
     print '3GHz'
     ###set martirials
-    CAT = "VLA_3GHz_counterpart_array_20170210_paper_smolcic_et_al.fits.txt" #3GHz in COSMOS2015
+    path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/05_3GHz/"
+    #CAT = path+"vla3_cosmos_sources_160321_public5sig.fits.txt"
+    CAT = path+"VLA_3GHz_counterpart_array_20170210_paper_smolcic_et_al.fits.txt" #3GHz in COSMOS2015
     ID = "ID_CPT"
     SOURCE_COLUMN = "3GHZ"
     MAIN_CAT = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
@@ -236,6 +238,84 @@ def Matching_ALMA():
                 #unmatched_num += 1
                 #break
     #print unmatched_num
+    print "source number ",num
+    
+    time2 = time.time()
+    print 'current time :', (time2-time1)/60.0 , 'min'
+    
+    ###output
+    print 'start writing table file'
+    output_cat = OutputCat(SOURCE_COLUMN, SOURCE)  
+    #print output_cat
+    output_cat.write(OUTPUT_CAT)
+    return
+
+def Matching_A3COSMOS():
+    print 'A3COSMOS catalog'
+    ###set martirials
+    path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/"
+    CAT = path+"07_ALMA/apjsab42da_table4/A-COSMOS_blind.fits"
+    
+    RA = "RA"
+    DEC = "DEC"
+    SOURCE_COLUMN = "A3COSMOS"
+    MAIN_CAT = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
+    OUTPUT_CAT = 'COSMOS2015_A3COSMOS10.fits'
+    searching_radius = 1.0
+    
+    ###set catalog names
+    number = 2
+    cat_name = [None]*number
+    cat_name[0] = MAIN_CAT
+    cat_name[1] = CAT
+    
+    ###set ID column names
+    galaxyid = [None]*number
+    galaxyid[0] = "NUMBER"
+    
+    ##set RA DEC column names
+    ra = [None]*number
+    dec = [None]*number
+    ra[0] = "ALPHA_J2000"
+    dec[0] = "DELTA_J2000"
+    ra[1] = RA
+    dec[1] = DEC
+    
+    ###read catalog
+    data = [None]*number
+    for i in range(2):
+        ReadCat(i,data,cat_name[i])
+    
+    time2 = time.time()
+    print 'current time :', (time2-time1)/60.0 , 'min'
+    
+    ###matching
+    SOURCE = [0]*len( data[0].filled() ) #create an array with length of COSMOS2015
+    c0 = SkyCoord(ra=data[0][ra[0]], dec=data[0][dec[0]])
+    c1 = SkyCoord(ra=data[1][ra[1]], dec=data[1][dec[1]])
+    
+    num = 0
+    print 'start loop'
+    print 'CAT length ',len(data[1].filled())
+    #unmatched_num = 0
+    multimatched_num = 0
+    for i in range( len(data[1].filled()) ):
+        sep = c0.separation(c1[i])
+        data0_incircle = data[0][ sep<=searching_radius*u.arcsec ]
+        
+        if (len(data0_incircle.filled())>1): print i, len(data0_incircle.filled())
+        for j in range( len(data0_incircle.filled()) ):
+            data0_id = data0_incircle[galaxyid[0]][j] -1
+            if (SOURCE[ data0_id ] != 0):
+                #print "!!!",data0_id,"!!!already tagged"
+                multimatched_num +=1
+            else:
+                SOURCE[ data0_id ] = 1
+                num += 1
+                #unmatched_num += 1
+                #break
+    #print unmatched_num
+    print "multimatched_num ",multimatched_num
     print "source number ",num
     
     time2 = time.time()
@@ -763,6 +843,8 @@ def Matching_450narrow():
     output_cat.write(OUTPUT_CAT)
     return
 
+
+
 # =============================================================================
 # main code
 # =============================================================================
@@ -784,6 +866,9 @@ time1 = time.time()
 # ===== ALMA =====
 #Matching_ALMA()
 
+# ===== ALMA =====
+Matching_A3COSMOS()
+
 # ===== lensing =====
 #id = 659416
 #Labeling_lensing()
@@ -791,7 +876,7 @@ time1 = time.time()
 
 # ===== 850 wide =====
 #COSMOS2015_24micron,3GHz,ALMA needed
-Matching_850wide()
+#Matching_850wide()
 
 # ===== 450 narrow =====
 #COSMOS2015_24micron,3GHz,ALMA needed
