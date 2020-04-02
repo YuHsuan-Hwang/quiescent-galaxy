@@ -148,7 +148,7 @@ def Plot(index, scale, struc, limit, line, inputcolor, label, labelname):
     
     maskQG = mask[index] & Mask_myclassQG(index)
     maskSFG = mask[index] & Mask_myclassSFG(index)
-    #plt.title(colorname1+colorname2+colorname3, fontdict = {'fontsize' : 16})
+    plt.title(colorname1+colorname2+colorname3, fontdict = {'fontsize' : 16})
     
     plt.title(colorname1+colorname2+colorname3+'\n'\
               +str(len(data[index].filled()[maskQG]))+' QGs ('+\
@@ -159,8 +159,8 @@ def Plot(index, scale, struc, limit, line, inputcolor, label, labelname):
     plt.xlabel(set_xlable, fontdict = {'fontsize' : 14})
     plt.ylabel(set_ylable, fontdict = {'fontsize' : 14})
     if (limit==1):
-        #plt.axis([-1.5,2,-1,7])
-        plt.axis([-0.5,2,-1,7])
+        plt.axis([-1.5,2,-1,7])
+        #plt.axis([-0.5,2,-1,7])
     if (scale==1):
         plt.axis('scaled')
     if (line==1):
@@ -176,7 +176,7 @@ def PrintQGfraction(index):
     QG_num = len(data[index].filled()[maskQG])
     print all_num, QG_num
     fraction = QG_num*100.0 / all_num
-    error =  100.0  / np.sqrt(all_num )
+    error =  np.sqrt(QG_num)*100.0 / all_num
     #error = np.sqrt( (1/QG_num)*100.0/all_num )
     #error = 100.0 / all_num * np.sqrt( (1/QG_num)+(QG_num**2/all_num**3) )
     return fraction, error
@@ -184,12 +184,12 @@ def PrintQGfraction(index):
 
 def PrintAGNfraction(index):
     maskQG = mask[1]
-    maskAGN = mask[index] & Mask_myclassSFG(index)
+    maskAGN = mask[index] & Mask_myclassQG(index)
     AGN_num = len(data[index].filled()[maskAGN])
     QG_all_num = len(data[index].filled()[maskQG])
     print AGN_num, QG_all_num
     fraction = AGN_num*100.0 / QG_all_num
-    error =  100.0  / np.sqrt(QG_all_num)
+    error =  np.sqrt(AGN_num)*100.0 / QG_all_num
     #error = np.sqrt( (1/QG_num)*100.0/all_num )
     #error = 100.0 / all_num * np.sqrt( (1/QG_num)+(QG_num**2/all_num**3) )
     return fraction, error
@@ -274,7 +274,7 @@ def Print_zbin_QGfraction(index):
             error.append(0.0)
         else:
             fraction.append(QG_num*100.0/all_num)
-            error.append( 100.0  / np.sqrt(all_num ) )
+            error.append( np.sqrt(QG_num)*100.0/all_num )
             #error.append(100.0 / all_num * np.sqrt( (1/QG_num)+(QG_num**2/all_num**3) ))
             print  all_num, QG_num, error[i]
     return fraction, error
@@ -1404,7 +1404,7 @@ Plot(0,0,0,1,1,'magenta',0,'850QG, '+str(Num_zbin_total(0))+' samples')
 print Num_zbin_total(0)
 '''
 
-number = 5
+number = 6
 catalog = [None]*1
 catalog[0] = 'COSMOS2015_merged.fits' 
 
@@ -1420,14 +1420,15 @@ for i in range(number):
 mask = []
 x_masked = []
 y_masked = []
-mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) &Mask_mass(0))
-mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) & Mask_myclassSFG(0)&Mask_mass(0))
-mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) \
-            & (data[0]['Radio_excess']==1) &Mask_mass(0))
-mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) \
-            & (data[0]['agn_c17b']==True)&Mask_mass(0) )
-mask.append( Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) \
-            & (data[0]['agn_xxx']==True) &Mask_mass(0))
+mask_all = Mask_M(0) & Mask_photoz(0) & Mask_error(1,0.1,0) & Mask_class_star(0) & Mask_mass(0)
+mask.append( mask_all )
+
+mask.append( mask_all & Mask_myclassQG(0))
+mask.append( mask_all &\
+            ( (data[0]['Radio_excess']==1)|(data[0]['agn_c17b']==True)|(data[0]['agn_xxx']==True) ))
+mask.append( mask_all & (data[0]['Radio_excess']==1) )
+mask.append( mask_all & (data[0]['agn_c17b']==True) )
+mask.append( mask_all & (data[0]['agn_xxx']==True) )
 
 #& Mask_mass(0)
 
@@ -1504,6 +1505,81 @@ plt.legend()
 plt.show()
 '''
 
+
+fig, axes = plt.subplots()
+
+plt.setp(axes, xticks=[y_axes+1 for y_axes in range(number)], xticklabels=['COSMOS2015','all AGN', 'radio AGN', 'IR AGN', 'X-ray AGN'])
+
+fraction, error = PrintQGfraction(0)
+print fraction, error
+plt.errorbar(1,fraction,error,color='k', fmt='o', capsize=5)
+plt.text(1.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+plt.hlines(fraction,0,6, colors='k', linestyles='dotted')
+
+fraction, error = PrintQGfraction(2)
+print fraction, error
+plt.errorbar(2,fraction,error,color='C0', fmt='o', capsize=5)
+plt.text(2.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintQGfraction(3)
+print fraction, error
+plt.errorbar(3,fraction,error,color='r', fmt='o', capsize=5)
+plt.text(3.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintQGfraction(4)
+print fraction, error
+plt.errorbar(4,fraction,error,color='C1', fmt='o', capsize=5)
+plt.text(4.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintQGfraction(5)
+print fraction, error
+plt.errorbar(5,fraction,error,color='g', fmt='o', capsize=5)
+plt.text(5.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+
+
+#axes.plot([1,2,3,4],[51.51,57.65,20.61,31.33],'o',['C0','C1','g','r'])
+plt.axis([0,6,0,70])
+#plt.title('QG percentage, mass>10^11', fontdict = {'fontsize' : 16})
+plt.ylabel('QG fraction(%)', fontdict = {'fontsize' : 18})#14})
+plt.show()
+
+
+'''
+fig, axes = plt.subplots(figsize=(8,6))
+
+zbin = [0.25,0.75,1.25,1.75,2.25,2.75,3.25,3.75]
+
+fraction, error = Print_zbin_QGfraction(0)
+plt.errorbar(zbin,fraction,error,fmt='o-',color='k',label='COSMOS2015', capsize=5)
+
+fraction, error = Print_zbin_QGfraction(2)
+a=0.01
+zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
+plt.errorbar(zbin,fraction,error,fmt='o-',color='C0',label='all AGN', capsize=5)
+
+fraction, error = Print_zbin_QGfraction(3)
+a=0.02
+zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
+plt.errorbar(zbin,fraction,error,fmt='o-',color='r',label='radio AGN', capsize=5)
+
+fraction, error = Print_zbin_QGfraction(4)
+a=0.03
+zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
+plt.errorbar(zbin,fraction,error,fmt='o-',color='C1',label='IR AGN', capsize=5)
+
+fraction, error = Print_zbin_QGfraction(5)
+a=0.04
+zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
+plt.errorbar(zbin,fraction,error,fmt='o-',color='g',label='X-Ray AGN', capsize=5)
+
+#plt.title('QG percentage, mass>10^11', fontdict = {'fontsize' : 20})
+plt.xlabel('z', fontdict = {'fontsize' : 16})
+plt.ylabel('QG fraction (%)', fontdict = {'fontsize' : 16})
+plt.legend()
+plt.show()
+
+'''
+
 '''
 fig, axes = plt.subplots()
 
@@ -1532,78 +1608,75 @@ plt.text(4.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
 
 #axes.plot([1,2,3,4],[51.51,57.65,20.61,31.33],'o',['C0','C1','g','r'])
 plt.axis([0,5,0,70])
-plt.title('QG percentage, mass>10^10.5', fontdict = {'fontsize' : 16})
+plt.title('QG percentage, mass>10^11', fontdict = {'fontsize' : 16})
 plt.ylabel('%', fontdict = {'fontsize' : 14})
 plt.show()
 '''
-
 '''
 fig, axes = plt.subplots()
 
-zbin = [0.25,0.75,1.25,1.75,2.25,2.75,3.25,3.75]
-
-fraction, error = Print_zbin_QGfraction(0)
-plt.errorbar(zbin,fraction,error,fmt='o-',color='C0',label='all', capsize=5)
-
-fraction, error = Print_zbin_QGfraction(2)
-a=0.02
-zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
-plt.errorbar(zbin,fraction,error,fmt='o-',color='C1',label='radio AGN', capsize=5)
-
-fraction, error = Print_zbin_QGfraction(3)
-a=0.04
-zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
-plt.errorbar(zbin,fraction,error,fmt='o-',color='g',label='IR AGN', capsize=5)
-
-fraction, error = Print_zbin_QGfraction(4)
-a=0.06
-zbin = [0.25+a,0.75+a,1.25+a,1.75+a,2.25+a,2.75+a,3.25+a,3.75+a]
-plt.errorbar(zbin,fraction,error,fmt='o-',color='r',label='X-Ray AGN', capsize=5)
-
-plt.title('QG percentage, mass>10^10.5', fontdict = {'fontsize' : 16})
-plt.xlabel('z', fontdict = {'fontsize' : 14})
-plt.ylabel('%', fontdict = {'fontsize' : 14})
-plt.legend()
-plt.show()
-'''
-
-
-
-fig, axes = plt.subplots()
-
-plt.setp(axes, xticks=[y_axes+1 for y_axes in range(5)], xticklabels=['all', 'radio AGN', 'IR AGN', 'X-ray AGN'])
+plt.setp(axes, xticks=[y_axes+1 for y_axes in range(5)], xticklabels=['all AGN', 'radio AGN', 'IR AGN', 'X-ray AGN'])
 
 fraction, error = PrintAGNfraction(0)
 print fraction, error
 plt.errorbar(1,fraction,error,color='C0', fmt='o', capsize=5)
-plt.text(1.0-0.2, fraction-error-5.5, str("%.2f" % fraction), fontsize=10)
+plt.text(1.0-0.2, fraction+error+0.5, str("%.2f" % fraction), fontsize=10)
 
 fraction, error = PrintAGNfraction(2)
 print fraction, error
 plt.errorbar(2,fraction,error,color='C1', fmt='o', capsize=5)
-plt.text(2.0-0.2, fraction-error+5.5, str("%.2f" % fraction), fontsize=10)
+plt.text(2.0-0.2, fraction+error+0.5, str("%.2f" % fraction), fontsize=10)
 
 fraction, error = PrintAGNfraction(3)
 print fraction, error
 plt.errorbar(3,fraction,error,color='g', fmt='o', capsize=5)
-plt.text(3.0-0.2, fraction-error+5.5, str("%.2f" % fraction), fontsize=10)
+plt.text(3.0-0.2, fraction+error+0.5, str("%.2f" % fraction), fontsize=10)
 
 fraction, error = PrintAGNfraction(4)
 print fraction, error
 plt.errorbar(4,fraction,error,color='r', fmt='o', capsize=5)
-plt.text(4.0-0.2, fraction-error+5.5, str("%.2f" % fraction), fontsize=10)
+plt.text(4.0-0.2, fraction+error+0.5, str("%.2f" % fraction), fontsize=10)
 
 
 #axes.plot([1,2,3,4],[51.51,57.65,20.61,31.33],'o',['C0','C1','g','r'])
-plt.axis([0,5,0,100])
-plt.title('AGN/SFG, mass>10^11', fontdict = {'fontsize' : 16})
+plt.axis([0,5,0,30])
+plt.title('AGN fraction for QGs, mass>10^11', fontdict = {'fontsize' : 16})
 plt.ylabel('%', fontdict = {'fontsize' : 14})
 plt.show()
+'''
 
 
+'''
+fig, axes = plt.subplots()
+
+plt.setp(axes, xticks=[y_axes+1 for y_axes in range(5)], xticklabels=['all AGN', 'radio AGN', 'IR AGN', 'X-ray AGN'])
+
+fraction, error = PrintAGNfraction(0)
+print fraction, error
+plt.errorbar(1,fraction,error,color='C0', fmt='o', capsize=5)
+plt.text(1.0-0.2, fraction+error+0.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintAGNfraction(2)
+print fraction, error
+plt.errorbar(2,fraction,error,color='C1', fmt='o', capsize=5)
+plt.text(2.0-0.2, fraction+error+0.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintAGNfraction(3)
+print fraction, error
+plt.errorbar(3,fraction,error,color='g', fmt='o', capsize=5)
+plt.text(3.0-0.2, fraction+error+0.5, str("%.2f" % fraction), fontsize=10)
+
+fraction, error = PrintAGNfraction(4)
+print fraction, error
+plt.errorbar(4,fraction,error,color='r', fmt='o', capsize=5)
+plt.text(4.0-0.2, fraction+error+0.5, str("%.2f" % fraction), fontsize=10)
 
 
-
-
+#axes.plot([1,2,3,4],[51.51,57.65,20.61,31.33],'o',['C0','C1','g','r'])
+plt.axis([0,5,0,30])
+plt.title('AGN fraction for SFGs, mass>10^11', fontdict = {'fontsize' : 16})
+plt.ylabel('%', fontdict = {'fontsize' : 14})
+plt.show()
+'''
 time2 = time.time()
 print 'done! time =', time2-time1 , 'sec'
