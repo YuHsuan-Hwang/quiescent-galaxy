@@ -23,13 +23,14 @@ def AddColumns(t,data,columns):
 
 def SimplifyMainCat():
     ###set catalog name
+    path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/01_COSMOS2015catalog/COSMOS2015/"
     inputcatalog = "COSMOS2015_Laigle+_v1.1"
-    catalog = inputcatalog+".fits"
+    catalog = path+inputcatalog+".fits"
     
     ###set columns
     columns = [ "ALPHA_J2000", "DELTA_J2000", "NUMBER", "MNUV", "MR", "MJ", "PHOTOZ","ZQ",\
                "V_MAGERR_APER3", "ip_MAGERR_APER3", "J_MAGERR_APER3", "Ks_MAGERR_APER3",\
-               "MASS_MED", "TYPE", "CLASS", "Ks_MAG_APER3",\
+               "MASS_MED","MASS_MED_MIN68","MASS_MED_MAX68", "TYPE", "CLASS", "Ks_MAG_APER3",\
                "MASS_BEST","FLAG_HJMCC","FLAG_PETER","FLAG_COSMOS","FLAG_DEEP","FLAG_SHALLOW"]
     
     ###read catalog
@@ -59,7 +60,7 @@ def SimplifyAGNCat():
     AddColumns(t,data,columns)
     
     ###output fits file
-    t.write("COSMOS2015_"+inputcatalog+'_simple.fits')
+    t.write(inputcatalog+'_simple.fits')
     return
 
 def SimplifyAGNcaCat():
@@ -152,7 +153,7 @@ time1 = time.time()
 #SimplifyAGNcaCat()
 
 # ===== Merging two redshift in COSMOS2015 =====
-MergingColumnRedshift()
+#MergingColumnRedshift()
 
 # ===== Merging =====
 MergingMainCat()
