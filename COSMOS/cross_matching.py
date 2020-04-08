@@ -17,51 +17,69 @@ from astropy import units as u
 # =============================================================================
 # functions
 # =============================================================================
-def ReadCat(index,data,cat):
+def ReadCat( index, data,cat ):
     data[index] = Table.read(cat, hdu=1)
     return
 
-def OutputCat(column_name, column_list):
-    t = Table()
+def OutputCat( column_name, column_list ):
+    t              = Table()
     t[column_name] = column_list
     return t
 
-def Mask_M(index,data,color1,color2,color3):
-    down = -30
-    up = 0
-    mask_color1 = (data[index][color1]>down) & (data[index][color1]<up)
-    mask_color2 = (data[index][color2]>down) & (data[index][color2]<up)
-    mask_color3 = (data[index][color3]>down) & (data[index][color3]<up)
-    mask_M = mask_color1 & mask_color2 & mask_color3
-    return mask_M
+def Mask_M(index):
+    
+    down, up    = -30, 0
+    mask_color1 = ( data[index][color1]>down ) & ( data[index][color1]<up )
+    mask_color2 = ( data[index][color2]>down ) & ( data[index][color2]<up )
+    mask_color3 = ( data[index][color3]>down ) & ( data[index][color3]<up )
+   
+    return mask_color1 & mask_color2 & mask_color3
 
-def Mask_error(index,data,V_error,ip_error,J_error,Ks_error):
-    mask_V_error = (data[index][V_error]<0.1) & (data[index][V_error]>0)
-    #Suprime-Cam:i+band
-    mask_ip_error = (data[index][ip_error]<0.1) & (data[index][ip_error]>0)
-    mask_J_error = (data[index][J_error]<0.1) & (data[index][J_error]>0)
-    mask_Ks_error = (data[index][Ks_error]<0.1) & (data[index][Ks_error]>0)
-    return mask_V_error | mask_ip_error | mask_J_error | mask_Ks_error
+def Mask_error( mode, up, index ):
+    
+    if mode==1:
+        mask_V_errorV = ( data[index][V_error] <up ) & ( data[index][V_error] >0 )
+        mask_ip_error = ( data[index][ip_error]<up ) & ( data[index][ip_error]>0 ) #Suprime-Cam:i+band
+        mask_J_error  = ( data[index][J_error] <up ) & ( data[index][J_error] >0 )
+        mask_Ks_error = ( data[index][Ks_error]<up ) & ( data[index][Ks_error]>0 )
+        return mask_V_errorV | mask_ip_error | mask_J_error | mask_Ks_error
+    
+    if mode==2:
+        return (data[index][V_error]<up) & (data[index][V_error]>0)
+    
+    if mode==3:
+        return (data[index][Ks_mag]<24)
+    
 
-def Mask_photoz(index,data,photoz):
-    return (data[index][photoz]>0) & (data[index][photoz]<8)
+def Mask_photoz( index ):
+    return (data[index][photoz]>0)
 
-def Mask_class_star(index,data,class_star):
-    return (data[index][class_star]==0)  
+def Mask_class_star( index ):
+    return ( data[index][class_star]==0 ) | ( data[index][class_star]==2 )
+
+def MaskAll( index ):
+    return Mask_M(index) & Mask_error( 1, 0.1, index ) & Mask_photoz( index ) & Mask_class_star( index )
+
+
+
 
 
 def Matching_24Micron():
-    print '24micron'
+    
+    print "Matching 24um sources"
+    
     ###set martirials
-    CAT = "COSMOS+mips24_allmatches.fits" #mips24 in COSMOS2015
-    ID = "NUMBER"
+    path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/"
+    CAT  = path + "02_mips24/COSMOS+mips24_allmatches.fits" #mips24 in COSMOS2015
+    
+    ID            = "NUMBER"
     SOURCE_COLUMN = "24MICRON"
-    MAIN_CAT = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
-    OUTPUT_CAT = 'COSMOS2015_24micron.fits'
+    MAIN_CAT      = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
+    OUTPUT_CAT    = 'COSMOS2015_24micron.fits'
     
     ###set catalog names
-    number = 2
-    cat_name = [None]*number
+    number      = 2
+    cat_name    = [None]*number
     cat_name[0] = MAIN_CAT
     cat_name[1] = CAT
     
@@ -69,51 +87,56 @@ def Matching_24Micron():
     galaxyid = ID
     
     ###read catalog
+    print "reading catalog ..."
     data = [None]*number
-    for i in range(number):
-        ReadCat(i,data,cat_name[i])
-    
-    print 'CAT length ',len(data[1])
+    for i in range( number ): ReadCat( i, data, cat_name[i] )
     
     time2 = time.time()
-    print 'current time :', (time2-time1)/60.0 , 'min'
+    print 'current time :', ( time2-time1 )/60.0 , 'min'
     
     ###matching
     num = 0
     SOURCE = [0]*len( data[0].filled() ) #create an array with length of COSMOS2015
-    print 'loop start'
-    for i in range(len(data[1])): #go through every id in CAT
-        data1_id = data[1][galaxyid][i] - 1
-        if SOURCE[ data1_id ]==1:
-            print "!!!",data1_id,"!!!already tagged"
+    
+    print "matching loop start ..."
+    print 'CAT length ',len( data[1] )
+    for i in range( len(data[1]) ): #go through every id in CAT
+        
+        source_id = data[1][galaxyid][i] - 1 #source id start with 0
+        
+        if SOURCE[ source_id ]==1:
+            print "!!!",source_id,"!!!already tagged"
         else:
-            SOURCE[ data1_id ] = 1
+            SOURCE[ source_id ] = 1
             num +=1
+    
     print "source number ",num
     
     ###output catalog
-    print 'start writing table file'
-    output_cat = OutputCat(SOURCE_COLUMN, SOURCE)  
-    #print output_cat
-    output_cat.write(OUTPUT_CAT)
+    print "writing table file ..."
+    output_cat = OutputCat( SOURCE_COLUMN, SOURCE )  
+    output_cat.write( OUTPUT_CAT )
+    
     return
    
 def Matching_3GHz():
-    print '3GHz'
+    
+    print "Matching 3GHz sources"
+    
     ###set martirials
     path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/05_3GHz/"
-    #CAT = path+"vla3_cosmos_sources_160321_public5sig.fits.txt"
-    CAT = path+"VLA_3GHz_counterpart_array_20170210_paper_smolcic_et_al.fits.txt" #3GHz in COSMOS2015
-    ID = "ID_CPT"
+    CAT  = path + "VLA_3GHz_counterpart_array_20170210_paper_smolcic_et_al.fits.txt" #3GHz in COSMOS2015
+    
+    ID            = "ID_CPT"
     SOURCE_COLUMN = "3GHZ"
-    MAIN_CAT = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
-    OUTPUT_CAT = 'COSMOS2015_3GHz.fits'
-    LABEL_COLUMN = ["Xray_AGN","MIR_AGN","SED_AGN","Quiescent_MLAGN","SFG","Clean_SFG",\
-                 "HLAGN","MLAGN","Radio_excess"]
+    MAIN_CAT      = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
+    OUTPUT_CAT    = 'COSMOS2015_3GHz.fits'
+    LABEL_COLUMN  = ["Xray_AGN","MIR_AGN","SED_AGN","Quiescent_MLAGN","SFG",
+                     "Clean_SFG","HLAGN","MLAGN","Radio_excess"]
     
     ###set catalog names
-    number = 2
-    cat_name = [None]*number
+    number      = 2
+    cat_name    = [None]*number
     cat_name[0] = MAIN_CAT
     cat_name[1] = CAT
     
@@ -121,173 +144,192 @@ def Matching_3GHz():
     galaxyid = ID
     
     ###read catalog
+    print "reading catalog ..."
     data = [None]*number
-    for i in range(number):
-        ReadCat(i,data,cat_name[i])
+    for i in range( number ): ReadCat( i,data,cat_name[i] )
     
     print 'CAT length ',len(data[1])
     
     ###mask cat label
-    mask = (data[1]['CAT_CPT']=='COSMOS2015     ')
+    mask      = ( data[1]['CAT_CPT']=='COSMOS2015     ' )
     data1_tmp = data[1][mask]
-    print 'label masked CAT length ',len(data1_tmp)
+    print 'label masked CAT length ',len( data1_tmp )
     
     time2 = time.time()
-    print 'current time :', (time2-time1)/60.0 , 'min'
+    print 'current time :', ( time2-time1 )/60.0 , 'min'
     
     ###matching
     num = 0
     SOURCE = [0]*len( data[0].filled() ) #create an array with length of COSMOS2015
-    print 'loop start'
-    for i in range(len(data1_tmp)): #go through every id in CAT
-        data1_id = data1_tmp[galaxyid][i] - 1
-        if SOURCE[ data1_id ]==1:
-            print "!!!",data1_id,"!!!already tagged"
+    
+    print "matching loop start ..."
+    for i in range( len(data1_tmp) ): #go through every id in CAT
+        
+        source_id = data1_tmp[galaxyid][i] - 1
+        
+        if SOURCE[ source_id ]==1:
+            print "!!!",source_id,"!!!already tagged"
         else:
-            SOURCE[ data1_id ] = 1
+            SOURCE[ source_id ] = 1
             num +=1
+    
     print "source number ",num
     
-    
-    output_cat = Table()
+    output_cat                = Table()
     output_cat[SOURCE_COLUMN] = SOURCE
     
     ###matching label
-    for i in range(len(LABEL_COLUMN)):
+    print "matching AGN labels ..."
+    for i in range( len(LABEL_COLUMN) ):
+        
         LABEL_SOURCE = [-99]*len( data[0].filled() )
-        for j in range(len(data1_tmp)): #go through every id in CAT
-            data1_id = data1_tmp[galaxyid][j] - 1
-            if data1_tmp[LABEL_COLUMN[i]][j].strip()=="true":
-                if LABEL_SOURCE[ data1_id ]==1:
-                    print "!!!",data1_id,"!!!already tagged"
+        
+        for j in range( len(data1_tmp) ): #go through every id in CAT
+            
+            source_id = data1_tmp[galaxyid][j] - 1
+            
+            if data1_tmp[LABEL_COLUMN[i]][j].strip()=="true": #VLA cat shows true
+                
+                #tag the sample as an AGN
+                if LABEL_SOURCE[ source_id ]==1:
+                    print "!!!",source_id,"!!!already tagged"
                 else:
-                    LABEL_SOURCE[ data1_id ] = 1
+                    LABEL_SOURCE[ source_id ] = 1
                     
-            else:
-                if LABEL_SOURCE[ data1_id ]==0:
-                    print "!!!",data1_id,"!!!already tagged"
+            else: #VLA cat shows false
+                
+                #tag the sample with zero
+                if LABEL_SOURCE[ source_id ]==0:
+                    print "!!!",source_id,"!!!already tagged"
                 else:
-                    LABEL_SOURCE[ data1_id ] = 0
+                    LABEL_SOURCE[ source_id ] = 0
+                    
         output_cat[LABEL_COLUMN[i]] = LABEL_SOURCE
     
     ###output catalog
-    print 'start writing table file'
+    print "writing table file ..."
     #print output_cat
     output_cat.write(OUTPUT_CAT)
     return
 
-def Matching_ALMA():
-    print 'ALMA catalog'
+def Matching_AS2COSMOS():
+    
+    print "Matching AS2COSMOS catalog"
+    
     ###set martirials
-    CAT = "06_ALMA/AS2COSMOScatalog_2019-06-01_merged_wJMSphotom_wZspec.fits"
-    ID = "ID"
-    RA = "RA_final"
-    DEC = "Dec_final"
-    SOURCE_COLUMN = "ALMA_10"
-    MAIN_CAT = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
-    OUTPUT_CAT = 'COSMOS2015_ALMA10.fits'
+    path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/"
+    CAT  = path + "07_ALMA/AS2COSMOScatalog_2019-06-01_merged_wJMSphotom_wZspec.fits"
+    
+    ID            = "ID"
+    RA            = "RA_final"
+    DEC           = "Dec_final"
+    SOURCE_COLUMN = "AS2COSMOS"
+    MAIN_CAT      = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
+    OUTPUT_CAT    = 'COSMOS2015_AS2COSMOS.fits'
+    
     searching_radius = 1.0
     
     ###set catalog names
-    number = 2
-    cat_name = [None]*number
+    number      = 2
+    cat_name    = [None]*number
     cat_name[0] = MAIN_CAT
     cat_name[1] = CAT
     
     ###set ID column names
-    galaxyid = [None]*number
+    galaxyid    = [None]*number
     galaxyid[0] = "NUMBER"
     galaxyid[1] = ID
     
     ##set RA DEC column names
-    ra = [None]*number
-    dec = [None]*number
-    ra[0] = "ALPHA_J2000"
+    ra     = [None]*number
+    dec    = [None]*number
+    ra[0]  = "ALPHA_J2000"
     dec[0] = "DELTA_J2000"
-    ra[1] = RA
+    ra[1]  = RA
     dec[1] = DEC
     
     ###read catalog
+    print "reading catalog ..."
     data = [None]*number
-    for i in range(2):
-        ReadCat(i,data,cat_name[i])
+    for i in range(2): ReadCat( i, data,cat_name[i] )
     
     time2 = time.time()
-    print 'current time :', (time2-time1)/60.0 , 'min'
+    print 'current time :', ( time2-time1 )/60.0 , 'min'
     
     #matching
     SOURCE = [0]*len( data[0].filled() ) #create an array with length of COSMOS2015
-    c0 = SkyCoord(ra=data[0][ra[0]], dec=data[0][dec[0]])
-    c1 = SkyCoord(ra=data[1][ra[1]]*u.degree, dec=data[1][dec[1]]*u.degree)
+    c0 = SkyCoord( ra=data[0][ra[0]],          dec=data[0][dec[0]]          )
+    c1 = SkyCoord( ra=data[1][ra[1]]*u.degree, dec=data[1][dec[1]]*u.degree )
     
     num = 0
-    print 'start loop'
+    print "matching loop start ..."
     print 'CAT length ',len(data[1].filled())
-    #unmatched_num = 0
+    
     for i in range( len(data[1].filled()) ):
+        
         sep = c0.separation(c1[i])
         data0_incircle = data[0][ sep<=searching_radius*u.arcsec ]
         
         for j in range( len(data0_incircle.filled()) ):
-            data0_id = data0_incircle[galaxyid[0]][j] -1
-            if (SOURCE[ data0_id ] != 0):
-                print "!!!",data0_id,"!!!already tagged"
+            source_id = data0_incircle[galaxyid[0]][j] -1
+            if ( SOURCE[ source_id ] != 0 ):
+                print "!!!",source_id,"!!!already tagged"
             else:
-                SOURCE[ data0_id ] = 1
+                SOURCE[ source_id ] = 1
                 num += 1
-                #unmatched_num += 1
-                #break
-    #print unmatched_num
+
     print "source number ",num
     
     time2 = time.time()
-    print 'current time :', (time2-time1)/60.0 , 'min'
+    print 'current time :', ( time2-time1 )/60.0 , 'min'
     
     ###output
-    print 'start writing table file'
-    output_cat = OutputCat(SOURCE_COLUMN, SOURCE)  
-    #print output_cat
-    output_cat.write(OUTPUT_CAT)
+    print "writing table file ..."
+    output_cat = OutputCat( SOURCE_COLUMN, SOURCE )  
+    output_cat.write( OUTPUT_CAT )
     return
 
 def Matching_A3COSMOS():
-    print 'A3COSMOS catalog'
+    
+    print "Matching A3COSMOS catalog"
+    
     ###set martirials
     path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/"
-    CAT = path+"07_ALMA/apjsab42da_table4/A-COSMOS_blind.fits"
+    CAT  = path+"07_ALMA/apjsab42da_table4/A-COSMOS_blind.fits"
     
-    RA = "RA"
-    DEC = "DEC"
+    RA            = "RA"
+    DEC           = "DEC"
     SOURCE_COLUMN = "A3COSMOS"
-    MAIN_CAT = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
-    OUTPUT_CAT = 'COSMOS2015_A3COSMOS10.fits'
+    MAIN_CAT      = "COSMOS2015_Laigle+_v1.1_simple.fits" #COSMOS2015
+    OUTPUT_CAT    = 'COSMOS2015_A3COSMOS.fits'
+    
     searching_radius = 1.0
     
     ###set catalog names
-    number = 2
-    cat_name = [None]*number
+    number      = 2
+    cat_name    = [None]*number
     cat_name[0] = MAIN_CAT
     cat_name[1] = CAT
     
     ###set ID column names
-    galaxyid = [None]*number
+    galaxyid    = [None]*number
     galaxyid[0] = "NUMBER"
     
     ##set RA DEC column names
-    ra = [None]*number
-    dec = [None]*number
-    ra[0] = "ALPHA_J2000"
+    ra     = [None]*number
+    dec    = [None]*number
+    ra[0]  = "ALPHA_J2000"
     dec[0] = "DELTA_J2000"
-    ra[1] = RA
+    ra[1]  = RA
     dec[1] = DEC
     
     ###read catalog
+    print "reading catalog ..."
     data = [None]*number
-    for i in range(2):
-        ReadCat(i,data,cat_name[i])
+    for i in range(2): ReadCat(i,data,cat_name[i])
     
     time2 = time.time()
-    print 'current time :', (time2-time1)/60.0 , 'min'
+    print 'current time :', ( time2-time1 )/60.0 , 'min'
     
     ###matching
     SOURCE = [0]*len( data[0].filled() ) #create an array with length of COSMOS2015
@@ -295,15 +337,16 @@ def Matching_A3COSMOS():
     c1 = SkyCoord(ra=data[1][ra[1]], dec=data[1][dec[1]])
     
     num = 0
-    print 'start loop'
+    print "matching loop start ..."
     print 'CAT length ',len(data[1].filled())
-    #unmatched_num = 0
+
     multimatched_num = 0
     for i in range( len(data[1].filled()) ):
-        sep = c0.separation(c1[i])
+        
+        sep = c0.separation( c1[i] )
         data0_incircle = data[0][ sep<=searching_radius*u.arcsec ]
         
-        if (len(data0_incircle.filled())>1): print i, len(data0_incircle.filled())
+        if ( len(data0_incircle.filled())>1 ): print i, len(data0_incircle.filled())
         for j in range( len(data0_incircle.filled()) ):
             data0_id = data0_incircle[galaxyid[0]][j] -1
             if (SOURCE[ data0_id ] != 0):
@@ -312,20 +355,17 @@ def Matching_A3COSMOS():
             else:
                 SOURCE[ data0_id ] = 1
                 num += 1
-                #unmatched_num += 1
-                #break
-    #print unmatched_num
+                
     print "multimatched_num ",multimatched_num
     print "source number ",num
     
     time2 = time.time()
-    print 'current time :', (time2-time1)/60.0 , 'min'
+    print 'current time :', ( time2-time1 )/60.0 , 'min'
     
     ###output
-    print 'start writing table file'
-    output_cat = OutputCat(SOURCE_COLUMN, SOURCE)  
-    #print output_cat
-    output_cat.write(OUTPUT_CAT)
+    print "writing table file ..."
+    output_cat = OutputCat( SOURCE_COLUMN, SOURCE )  
+    output_cat.write( OUTPUT_CAT )
     return
 
 def Labeling_lensing():
@@ -363,485 +403,319 @@ def Labeling_lensing():
     return
 
 
-def Matching_850wide():
-    print '850 wide'
-    ###set martirials
-    CAT = "04_COSMOS450_850/S2COSMOS/catalog/S2COSMOS_sourcecat850_Simpson18.fits"
-    RA = "RA_deg"
-    DEC = "DEC_deg"
-    SOURCE_COLUMN = "850WIDE"
-    MAIN_CAT = "COSMOS2015_Laigle+_v1.1_simple.fits"
+def TagSource( data_in_circle, j, tag ):
     
-    CAT_24micron_all = "02_mips24/mips24_whwang.fits"
-    CAT_24micron_cpt = "COSMOS2015_24micron.fits"
-    CAT_3GHz_all = "05_3GHz/vla3_cosmos_sources_160321_public5sig.fits.txt"
-    CAT_3GHz_cpt = "COSMOS2015_3GHz.fits"
-    CAT_ALMA_all = "06_ALMA/AS2COSMOScatalog_2019-06-01_merged_wJMSphotom_wZspec.fits"
-    CAT_ALMA_cpt = "COSMOS2015_ALMA10.fits"
+    source_id = data_in_circle[galaxyid][j] - 1
+    if SOURCE[source_id]!=0:
+        print "!!!",source_id,"already tagged",SOURCE[source_id],", would like to tag ",tag
+    else:
+        SOURCE[source_id] = tag
+        label_num[tag-1] += 1
+        
+    return
+
+
+def MatchingSubmm():
     
-    OUTPUT_CAT = 'COSMOS2015_850wide.fits'
-    searching_radius_850 = 7.0
-    
+    MAIN_CAT         = "COSMOS2015_merged_tmp.fits"
+    CAT_24micron_all = path + "02_mips24/mips24_whwang.fits"
+    CAT_3GHz_all     = path + "05_3GHz/vla3_cosmos_sources_160321_public5sig.fits.txt"
+    CAT_ALMA_all     = path + "07_ALMA/AS2COSMOScatalog_2019-06-01_merged_wJMSphotom_wZspec.fits"
+    CAT_A3COSMOS_all = path + "07_ALMA/apjsab42da_table4/A-COSMOS_blind.fits"
     
     ###set catalog names
-    number = 8
-    cat_name = [None]*number
+    number      = 6
+    cat_name    = [None]*number
     cat_name[0] = MAIN_CAT
     cat_name[1] = CAT
+    
     cat_name[2] = CAT_24micron_all
     cat_name[3] = CAT_3GHz_all
     cat_name[4] = CAT_ALMA_all
-    cat_name[5] = CAT_24micron_cpt
-    cat_name[6] = CAT_3GHz_cpt
-    cat_name[7] = CAT_ALMA_cpt
+    cat_name[5] = CAT_A3COSMOS_all
     
     ###set ID column names
-    galaxyid = [None]*number
-    galaxyid[0] = "NUMBER"
+    global galaxyid
+    galaxyid = "NUMBER"
     
     ##set RA DEC column names
-    ra = [None]*number
-    dec = [None]*number
-    ra[0] = "ALPHA_J2000"
+    ra     = [None]*number
+    dec    = [None]*number
+    ra[0]  = "ALPHA_J2000"
     dec[0] = "DELTA_J2000"
-    ra[1] = RA
+    ra[1]  = RA
     dec[1] = DEC
-    ra[2] = "RA_mips24"
+    ra[2]  = "RA_mips24"
     dec[2] = "DEC_mips24"
-    ra[3] = "ra"
+    ra[3]  = "ra"
     dec[3] = "dec"
-    ra[4] = "RA_final"
+    ra[4]  = "RA_final"
     dec[4] = "Dec_final"
+    ra[5]  = "RA"
+    dec[5] = "DEC"
     
     ###set columns in the main catalog
-    color1 = "MNUV"
-    color2 = "MR"
-    color3 = "MJ"
-    color = [ color1, color2, color3 ]
-    photoz = "PHOTOZ"
-    V_error = "V_MAGERR_APER3"
-    ip_error = "ip_MAGERR_APER3"
-    J_error = "J_MAGERR_APER3"
-    Ks_error = "Ks_MAGERR_APER3"
-    mass = "MASS_MED"
+    global color1, color2, color3, photoz
+    global V_error, ip_error, J_error, Ks_error, class_star, Ks_mag
+    color1     = "MNUV"
+    color2     = "MR"
+    color3     = "MJ"
+    photoz     = "REDSHIFT"
+    V_error    = "V_MAGERR_APER3"
+    ip_error   = "ip_MAGERR_APER3"
+    J_error    = "J_MAGERR_APER3"
+    Ks_error   = "Ks_MAGERR_APER3"
     class_star = "TYPE"
-    class_SFG = "CLASS"
-    
-    ###set columns for mutiple detection
-    column = [None]*number
-    column[5] = "24MICRON"
-    column[6] = "3GHZ"
-    column[7] = "ALMA_10"
+    Ks_mag     = "Ks_MAG_APER3"
     
     ###read catalog
+    global data
     data = [None]*number
-    for i in range(number):
-        ReadCat(i,data,cat_name[i])
+    print 'reading catalogs ...'
+    for i in range( number ): ReadCat( i,data,cat_name[i] )
     
     time2 = time.time()
-    print 'current time :', (time2-time1)/60.0 , 'min'
+    print 'current time :', ( time2-time1 )/60.0 , 'min'
     
-    ###mask cat
-    mask_data0 = Mask_M(0,data,color1,color2,color3) \
-    & Mask_error(0,data,V_error,ip_error,J_error,Ks_error) \
-    & Mask_photoz(0,data,photoz) & Mask_class_star(0,data,class_star)
-    data0_tmp = data[0][mask_data0]
-    print 'masked MAIN_CAT length ',len(data0_tmp.filled())
+    ###mask cat           
+    data0_masked     = data[0][MaskAll(0)]
+    data0_masked_24  = data[0][MaskAll(0)&(data[0]["24MICRON"]==1 )]
+    data0_masked_3   = data[0][MaskAll(0)&(data[0]["3GHZ"]==1     )]
+    data0_masked_AS2 = data[0][MaskAll(0)&(data[0]["AS2COSMOS"]==1)]
+    data0_masked_A3  = data[0][MaskAll(0)&(data[0]["A3COSMOS"]==1 )]
+    print "data0_masked     ",len(data0_masked)
+    print "data0_masked_24  ",len(data0_masked_24)
+    print "data0_masked_3   ",len(data0_masked_3)
+    print "data0_masked_AS2 ",len(data0_masked_AS2)
+    print "data0_masked_A3  ",len(data0_masked_A3)
+
+    print 'masked MAIN_CAT length ',len( data0_masked.filled() )
     
     ###calculate coordinate
-    c0 = SkyCoord(ra=data0_tmp[ra[0]], dec=data0_tmp[dec[0]]) #MAIN_CAT
-    c1 = SkyCoord(ra=data[1][ra[1]]*u.degree, dec=data[1][dec[1]]*u.degree) #CAT
-    c2 = SkyCoord(ra=data[2][ra[2]]*u.degree, dec=data[2][dec[2]]*u.degree) #24
-    c3 = SkyCoord(ra=data[3][ra[3]], dec=data[3][dec[3]]) #3
-    c4 = SkyCoord(ra=data[4][ra[4]]*u.degree, dec=data[4][dec[4]]*u.degree) #ALMA
+    c0 = SkyCoord( ra=data0_masked[ra[0]],     dec=data0_masked[dec[0]]     ) #MAIN_CAT
+    c1 = SkyCoord( ra=data[1][ra[1]]*u.degree, dec=data[1][dec[1]]*u.degree ) #CAT
+    c2 = SkyCoord( ra=data[2][ra[2]]*u.degree, dec=data[2][dec[2]]*u.degree ) #24
+    c3 = SkyCoord( ra=data[3][ra[3]]         , dec=data[3][dec[3]]          ) #3
+    c4 = SkyCoord( ra=data[4][ra[4]]*u.degree, dec=data[4][dec[4]]*u.degree ) #AS2COSMOS
+    c5 = SkyCoord( ra=data[5][ra[5]]         , dec=data[5][dec[5]]          ) #A3COSMOS
+    
+    c6 = SkyCoord( ra=data0_masked_24[ra[0]] , dec=data0_masked_24[dec[0]]  ) #24
+    c7 = SkyCoord( ra=data0_masked_3[ra[0]]  , dec=data0_masked_3[dec[0]]   ) #3
+    c8 = SkyCoord( ra=data0_masked_AS2[ra[0]], dec=data0_masked_AS2[dec[0]] ) #AS2COSMOS_opt
+    c9 = SkyCoord( ra=data0_masked_A3[ra[0]] , dec=data0_masked_A3[dec[0]]  ) #A3COSMOS_opt
     
     ###matching
     
+    global SOURCE, label_num
+    
     SOURCE = [0]*len( data[0].filled() ) #create an array with length of COSMOS2015
     
-    typeA_num = 0 #24 3 both detected
-    label1_num = 0
+    #all AS2COSMO S850 sources = ALMA_detect_Num + MIPSandVLA_detect_Num + MIPS_detect_Num
+    #                            + VLA_detect_Num + MIPSorVLA_detect_no_opt_Num + non_detect_Num
+    label_num = [ 0,0,0,0,0,0,0 ]
+    ALMA_detect_Num              = 0 #with ALMA observation
     
-    typeB_num = 0 #24 or 3 detected
-    label2_num = 0 #24
-    label3_num = 0 #3
+    A3andAS2_detect_Num          = 0 #with A3 and AS2 observation  label1
+    A3COSMOS_detect_Num          = 0 #only with A3 observation     label2
+    AS2COSMOS_detect_Num         = 0 #only with AS2 observation    label3
+    A3orAS2_detect_no_opt_Num    = 0 #but without opt samples
     
-    typeC_num = 0 #no opt counterpart
+    MIPSorVLA_detect_Num         = 0
     
-    typeD_num = 0 #all selected
-    label4_num = 0
+    MIPSandVLA_detect_Num        = 0 #with 24 and 3 observation    label4
+    MIPS_detect_Num              = 0 #only with 24 observation     label5
+    VLA_detect_Num               = 0 #only with 3 observation      label6
+    MIPSorVLA_detect_no_opt_Num  = 0 #but without opt samples
     
-    typeE_num = 0 #ALMA detected, no opt couterpart
-    ALMA_no_opt_num = 0
+    non_detect_Num               = 0 #no any other observation     label7: every opt sample within the radius
+    non_detect_no_opt_Num        = 0 #even without any opt sample (outside COSMOS region)
     
-    typeF_num = 0 #ALMA detected
-    label5_num = 0
-    
-    print 'loop start'
+    print "matching loop start ..."
     print 'CAT length ',len(data[1].filled())
+    
     for i in range( len(data[1].filled()) ): #go through every id in CAT
-        sep0 = c0.separation(c1[i])
-        data0_in_circle = data0_tmp[ sep0<=searching_radius_850*u.arcsec ]
-        sep4 = c4.separation(c1[i])
-        data4_in_circle = data[4][ sep4<=searching_radius_850*u.arcsec ]
-     
-        if len(data4_in_circle) >0:
-            #ALMA follow-ups
-            flag = 0
-            opt_num = 0
-            for j in range(len(data0_in_circle)):
+        
+        sep4            = c4.separation( c1[i] )
+        data4_in_circle = data[4][ sep4<=searching_radius*u.arcsec ]
+        sep5            = c5.separation( c1[i] )
+        data5_in_circle = data[5][ sep5<=searching_radius*u.arcsec ]
+    
+        
+        if ( len(data5_in_circle)>0 )|( len(data4_in_circle)>0 ): #ALMA detected
+            
+            ALMA_detect_Num +=1
+            
+            sep8            = c8.separation( c1[i] )
+            data8_in_circle = data0_masked_AS2[ sep8<=searching_radius*u.arcsec ]
+            sep9            = c9.separation( c1[i] )
+            data9_in_circle = data0_masked_A3[ sep9<=searching_radius*u.arcsec ]
+            
+            if ( len(data9_in_circle)>0 )|( len(data8_in_circle)>0 ):
                 
-                
-                data0_id = data0_in_circle[galaxyid[0]][j] - 1
-                if data[7][column[7]][data0_id]==1: #ALMA detected
-                    if SOURCE[data0_id]!=0:
-                        print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 5"
-                    else:
-                        SOURCE[data0_id] = 5
-                        opt_num += 1
-                        flag = 1
-            if flag == 1:
-                typeF_num += 1
-                label5_num += opt_num
-                ALMA_no_opt_num += len(data4_in_circle) - opt_num
-            else:
-                typeE_num += 1
-                ALMA_no_opt_num += len(data4_in_circle)
-            
-            
-        else:
-            #not ALMA follow-ups
-            
-            sep2 = c2.separation(c1[i])
-            data2_in_circle = data[2][ sep2<=searching_radius_850*u.arcsec ]
-            sep3 = c3.separation(c1[i])
-            data3_in_circle = data[3][ sep3<=searching_radius_850*u.arcsec ]
-            
-            if len(data2_in_circle)+len(data3_in_circle)>0:
-                #sources with clues, no need to select all
-                
-                flag = 0
-                for j in range(len(data0_in_circle)):
-                    
-                    
-                    data0_id = data0_in_circle[galaxyid[0]][j] - 1
-                    if data[5][column[5]][data0_id]==1: #24 micron detected
-                        if data[6][column[6]][data0_id]==1: #3 GHz detected
-                            if SOURCE[data0_id]!=0:
-                                print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 1"
-                            else:
-                                SOURCE[data0_id] = 1
-                                label1_num += 1
-                                flag = 1
+                label_flag = 0
+                for j in range ( len(data9_in_circle) ): # go through every 24 opt sources
+                    for k in range( len(data8_in_circle) ):
+                        if ( data9_in_circle[galaxyid][j]==data8_in_circle[galaxyid][k] ):
                                 
+                            TagSource( data9_in_circle, j, 1 )
+                            label_flag = 1
+
+                if label_flag==1 :
+                    A3andAS2_detect_Num  += 1
+                    continue               
+            
+            if ( len(data9_in_circle)>0 )|( len(data8_in_circle)==0 ): #A3COSMOS detected
+            
+                A3COSMOS_detect_Num += 1         
+                for j in range( len(data9_in_circle) ):
+                    TagSource( data9_in_circle, j, 2 )
+                            
+            elif ( len(data9_in_circle)==0 )|( len(data8_in_circle)>0 ): #AS2COSMOS detected
+                
+                AS2COSMOS_detect_Num += 1           
+                for j in range( len(data8_in_circle) ):
+                    TagSource( data8_in_circle, j, 3 )
+                            
+            else: #no opt counterpart
+                   A3orAS2_detect_no_opt_Num += 1
+            
+        else: #no ALMA observation
+            
+            MIPSorVLA_detect_Num += 1
+            
+            sep2            = c2.separation( c1[i] )
+            data2_in_circle = data[2][ sep2<=searching_radius*u.arcsec ]
+            sep3            = c3.separation( c1[i] )
+            data3_in_circle = data[3][ sep3<=searching_radius*u.arcsec ]  
+            
+            if ( len(data2_in_circle)>0 )|( len(data3_in_circle)>0 ): # with 24 or 3 detected
+                
+                sep6            = c6.separation( c1[i] )
+                data6_in_circle = data0_masked_24[ sep6<=searching_radius*u.arcsec ]
+                sep7            = c7.separation( c1[i] )
+                data7_in_circle = data0_masked_3[ sep7<=searching_radius*u.arcsec ]  
+            
+                if ( len(data6_in_circle)>0 )|( len(data7_in_circle)>0 ): # with 24 or 3 opt sources
+                    
+                    label_flag = 0
+                    
+                    for j in range ( len(data6_in_circle) ): # go through every 24 opt sources
+                        for k in range( len(data7_in_circle) ):
+                            if ( data6_in_circle[galaxyid][j]==data7_in_circle[galaxyid][k] ):
                                 
-                if flag == 1:
-                    typeA_num += 1
-    
-                else:
-                    for j in range(len(data0_in_circle)):
-                        
-                        
-                        data0_id = data0_in_circle[galaxyid[0]][j] - 1
-                        if data[5][column[5]][data0_id]==1:  #24
-                            if SOURCE[data0_id]!=0:
-                                print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 2"
-                            else:
-                                SOURCE[data0_id] = 2
-                                label2_num += 1
-                                flag = 1
-                        if data[6][column[6]][data0_id]==1:  #3
-                            if SOURCE[data0_id]!=0:
-                                print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 3"
-                            else:
-                                SOURCE[data0_id] = 2
-                                label3_num += 1
-                                flag = 1
-                            
-                            
-                    if flag == 1:
-                        typeB_num += 1
-                    else:
-                        #clues given, but no opt sample found
-                        typeC_num += 1
+                                TagSource( data6_in_circle, j, 4 )
+                                label_flag = 1
+
+                    if label_flag==1 :
+                        MIPSandVLA_detect_Num += 1
+                        continue
+                                    
+                if ( len(data6_in_circle)>0 )|( len(data7_in_circle)==0 ): # with 24 opt sources
                     
-            else:
-                #sources with no clues, select all
-                for j in range(len(data0_in_circle)):
+                    MIPS_detect_Num += 1                    
+                    for j in range ( len(data6_in_circle) ): # go through every 24 opt sources                      
+                        TagSource( data6_in_circle, j, 5 )
+                            
+                elif ( len(data6_in_circle)==0 )|( len(data7_in_circle)>0 ): # with 3 opt sources
                     
-                    data0_id = data0_in_circle[galaxyid[0]][j] - 1
-                    if SOURCE[data0_id]!=0:
-                        print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 4"
-                    else:
-                        SOURCE[data0_id] = 4
-                        label4_num += 1
-                typeD_num += 1
+                    VLA_detect_Num += 1                    
+                    for j in range ( len(data7_in_circle) ): # go through every 3 opt sources                       
+                        TagSource( data7_in_circle, j, 6 )
+                            
+                else: # with 24 or 3 detected but no opt sample
+                    
+                    MIPSorVLA_detect_no_opt_Num += 1
+            
+            else: # no ALMA, 24, or 3 detection
+            
+                non_detect_Num += 1
+                
+                sep0            = c0.separation( c1[i] )
+                data0_in_circle = data0_masked[ sep0<=searching_radius*u.arcsec ]
+                
+                if ( len(data0_in_circle)>0 ):
+                    for j in range ( len(data0_in_circle) ): # go through every opt sources
+                        TagSource( data0_in_circle, j, 7 )    
+
+                else:                   
+                    non_detect_no_opt_Num += 1
+                            
     
-    print 'typeA_num ', typeA_num #24 3 both detected
-    print 'label1_num ', label1_num
-    
-    print 'typeB_num ', typeB_num #24 or 3 detected
-    print 'label2_num ', label2_num #24
-    print 'label3_num ', label3_num #3
-    
-    print 'typeC_num ', typeC_num #no opt counterpart
-    
-    print 'typeD_num ', typeD_num #all selected
-    print 'label4_num ', label4_num
-    
-    print 'typeE_num ', typeE_num #ALMA detected, no opt couterpart
-    print 'ALMA_no_opt_num ', ALMA_no_opt_num
-    
-    print 'typeF_num ', typeF_num #ALMA detected
-    print 'label5_num ', label5_num
+    print "ALMA_detect_Num             ", ALMA_detect_Num
+    print
+    print "A3andAS2_detect_Num         ", A3andAS2_detect_Num
+    print "opt sample num (1)          ", label_num[0]
+    print "A3COSMOS_detect_Num         ", A3COSMOS_detect_Num
+    print "opt sample num (2)          ", label_num[1]
+    print "AS2COSMOS_detect_Num        ", AS2COSMOS_detect_Num
+    print "opt sample num (3)          ", label_num[2]
+    print "A3orAS2_detect_no_opt_Num   ", A3orAS2_detect_no_opt_Num
+    print
+    print "MIPSorVLA_detect_Num        ", MIPSorVLA_detect_Num
+    print
+    print "MIPSandVLA_detect_Num       ", MIPSandVLA_detect_Num
+    print "opt sample num (4)          ", label_num[3]
+    print "MIPS_detect_Num             ", MIPS_detect_Num
+    print "opt sample num (5)          ", label_num[4]
+    print "VLA_detect_Num              ", VLA_detect_Num
+    print "opt sample num (6)          ", label_num[5]
+    print "MIPSorVLA_detect_no_opt_Num ", MIPSorVLA_detect_no_opt_Num
+    print
+    print "non_detect_Num              ", non_detect_Num
+    print "non_detect_no_opt_Num       ", non_detect_no_opt_Num
+    print "opt sample num (7)          ", label_num[6]
+    print
     
     ###output
-    print 'start writing table file'
+    print 'writing table file ...'
     output_cat = OutputCat(SOURCE_COLUMN, SOURCE)  
-    print output_cat
     #output_cat.write(OUTPUT_CAT)
+    print
     return
 
+def Matching_850wide():
+    
+    print "Matching 850 wide sources"
+    
+    global path, CAT, RA, DEC, SOURCE_COLUMN, MAIN_CAT, OUTPUT_CAT, searching_radius
+    
+    ###set martirials
+    path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/"
+    
+    CAT           = path + "04_COSMOS450_850/S2COSMOS/catalog/S2COSMOS_sourcecat850_Simpson18.fits"
+    RA            = "RA_deg"
+    DEC           = "DEC_deg"
+    SOURCE_COLUMN = "850WIDE"
+    
+    OUTPUT_CAT       = "COSMOS2015_850wide.fits"    
+    searching_radius = 7.0
+
+    MatchingSubmm()
+    
+    return
 
 
 def Matching_450narrow():
-    print '450 narrow'
+    
+    print "Matching 450 narrow sources"
+    
+    global path, CAT, RA, DEC, SOURCE_COLUMN, MAIN_CAT, OUTPUT_CAT, searching_radius
+    
     ###set martirials
-    CAT = "04_COSMOS450_850/STUDIES/sources_450.fits"
-    RA = "RA_450"
-    DEC = "DEC_450"
+    path = "/Users/yuhsuan/Documents/research/05WH/data/COSMOS/"
+    
+    CAT           = path + "04_COSMOS450_850/STUDIES/sources_450.fits"
+    RA            = "RA_450"
+    DEC           = "DEC_450"
     SOURCE_COLUMN = "450NARROW"
-    MAIN_CAT = "COSMOS2015_Laigle+_v1.1_simple.fits"
     
-    CAT_24micron_all = "02_mips24/mips24_whwang.fits"
-    CAT_24micron_cpt = "COSMOS2015_24micron.fits"
-    CAT_3GHz_all = "05_3GHz/vla3_cosmos_sources_160321_public5sig.fits.txt"
-    CAT_3GHz_cpt = "COSMOS2015_3GHz.fits"
-    CAT_ALMA_all = "06_ALMA/AS2COSMOScatalog_2019-06-01_merged_wJMSphotom_wZspec.fits"
-    CAT_ALMA_cpt = "COSMOS2015_ALMA10.fits"
+    OUTPUT_CAT       = "COSMOS2015_450narrow.fits"
+    searching_radius = 4.0
     
-    OUTPUT_CAT = 'COSMOS2015_450narrow.fits'
-    searching_radius_450 = 4.0
+    MatchingSubmm()
     
-    
-    ###set catalog names
-    number = 8
-    cat_name = [None]*number
-    cat_name[0] = MAIN_CAT
-    cat_name[1] = CAT
-    cat_name[2] = CAT_24micron_all
-    cat_name[3] = CAT_3GHz_all
-    cat_name[4] = CAT_ALMA_all
-    cat_name[5] = CAT_24micron_cpt
-    cat_name[6] = CAT_3GHz_cpt
-    cat_name[7] = CAT_ALMA_cpt
-    
-    ###set ID column names
-    galaxyid = [None]*number
-    galaxyid[0] = "NUMBER"
-    
-    ##set RA DEC column names
-    ra = [None]*number
-    dec = [None]*number
-    ra[0] = "ALPHA_J2000"
-    dec[0] = "DELTA_J2000"
-    ra[1] = RA
-    dec[1] = DEC
-    ra[2] = "RA_mips24"
-    dec[2] = "DEC_mips24"
-    ra[3] = "ra"
-    dec[3] = "dec"
-    ra[4] = "RA_final"
-    dec[4] = "Dec_final"
-    
-    ###set columns in the main catalog
-    color1 = "MNUV"
-    color2 = "MR"
-    color3 = "MJ"
-    color = [ color1, color2, color3 ]
-    photoz = "PHOTOZ"
-    V_error = "V_MAGERR_APER3"
-    ip_error = "ip_MAGERR_APER3"
-    J_error = "J_MAGERR_APER3"
-    Ks_error = "Ks_MAGERR_APER3"
-    mass = "MASS_MED"
-    class_star = "TYPE"
-    class_SFG = "CLASS"
-    
-    ###set columns for mutiple detection
-    column = [None]*number
-    column[5] = "24MICRON"
-    column[6] = "3GHZ"
-    column[7] = "ALMA_10"
-    
-    ###read catalog
-    data = [None]*number
-    for i in range(number):
-        ReadCat(i,data,cat_name[i])
-    
-    time2 = time.time()
-    print 'current time :', (time2-time1)/60.0 , 'min'
-    
-    ###mask cat
-    mask_data0 = Mask_M(0,data,color1,color2,color3) \
-    & Mask_error(0,data,V_error,ip_error,J_error,Ks_error) \
-    & Mask_photoz(0,data,photoz) & Mask_class_star(0,data,class_star)
-    data0_tmp = data[0][mask_data0]
-    print 'masked MAIN_CAT length ',len(data0_tmp.filled())
-    
-    ###calculate coordinate
-    c0 = SkyCoord(ra=data0_tmp[ra[0]], dec=data0_tmp[dec[0]]) #MAIN_CAT
-    c1 = SkyCoord(ra=data[1][ra[1]]*u.degree, dec=data[1][dec[1]]*u.degree) #CAT
-    c2 = SkyCoord(ra=data[2][ra[2]]*u.degree, dec=data[2][dec[2]]*u.degree) #24
-    c3 = SkyCoord(ra=data[3][ra[3]], dec=data[3][dec[3]]) #3
-    c4 = SkyCoord(ra=data[4][ra[4]]*u.degree, dec=data[4][dec[4]]*u.degree) #ALMA
-    
-    ###matching
-    
-    SOURCE = [0]*len( data[0].filled() ) #create an array with length of COSMOS2015
-    
-    typeA_num = 0 #24 3 both detected
-    label1_num = 0
-    
-    typeB_num = 0 #24 or 3 detected
-    label2_num = 0 #24
-    label3_num = 0 #3
-    
-    typeC_num = 0 #no opt counterpart
-    
-    typeD_num = 0 #all selected
-    label4_num = 0
-    
-    typeE_num = 0 #ALMA detected, no opt couterpart
-    ALMA_no_opt_num = 0
-    
-    typeF_num = 0 #ALMA detected
-    label5_num = 0
-    
-    print 'loop start'
-    print 'CAT length ',len(data[1].filled())
-    for i in range( len(data[1].filled()) ): #go through every id in CAT
-        sep0 = c0.separation(c1[i])
-        data0_in_circle = data0_tmp[ sep0<=searching_radius_450*u.arcsec ]
-        sep4 = c4.separation(c1[i])
-        data4_in_circle = data[4][ sep4<=searching_radius_450*u.arcsec ]
-     
-        if len(data4_in_circle) >0:
-            #ALMA follow-ups
-            flag = 0
-            opt_num = 0
-            for j in range(len(data0_in_circle)):
-                
-                
-                data0_id = data0_in_circle[galaxyid[0]][j] - 1
-                if data[7][column[7]][data0_id]==1: #ALMA detected
-                    if SOURCE[data0_id]!=0:
-                        print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 5"
-                    else:
-                        SOURCE[data0_id] = 5
-                        opt_num += 1
-                        flag = 1
-            if flag == 1:
-                typeF_num += 1
-                label5_num += opt_num
-                ALMA_no_opt_num += len(data4_in_circle) - opt_num
-            else:
-                typeE_num += 1
-                ALMA_no_opt_num += len(data4_in_circle)
-            
-            
-        else:
-            #not ALMA follow-ups
-            
-            sep2 = c2.separation(c1[i])
-            data2_in_circle = data[2][ sep2<=searching_radius_450*u.arcsec ]
-            sep3 = c3.separation(c1[i])
-            data3_in_circle = data[3][ sep3<=searching_radius_450*u.arcsec ]
-            
-            if len(data2_in_circle)+len(data3_in_circle)>0:
-                #sources with clues, no need to select all
-                
-                flag = 0
-                for j in range(len(data0_in_circle)):
-                    
-                    
-                    data0_id = data0_in_circle[galaxyid[0]][j] - 1
-                    if data[5][column[5]][data0_id]==1: #24 micron detected
-                        if data[6][column[6]][data0_id]==1: #3 GHz detected
-                            if SOURCE[data0_id]!=0:
-                                print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 1"
-                            else:
-                                SOURCE[data0_id] = 1
-                                label1_num += 1
-                                flag = 1
-                                
-                                
-                if flag == 1:
-                    typeA_num += 1
-    
-                else:
-                    for j in range(len(data0_in_circle)):
-                        
-                        
-                        data0_id = data0_in_circle[galaxyid[0]][j] - 1
-                        if data[5][column[5]][data0_id]==1:  #24
-                            if SOURCE[data0_id]!=0:
-                                print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 2"
-                            else:
-                                SOURCE[data0_id] = 2
-                                label2_num += 1
-                                flag = 1
-                        if data[6][column[6]][data0_id]==1:  #3
-                            if SOURCE[data0_id]!=0:
-                                print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 3"
-                            else:
-                                SOURCE[data0_id] = 2
-                                label3_num += 1
-                                flag = 1
-                            
-                            
-                    if flag == 1:
-                        typeB_num += 1
-                    else:
-                        #clues given, but no opt sample found
-                        typeC_num += 1
-                    
-            else:
-                #sources with no clues, select all
-                for j in range(len(data0_in_circle)):
-                    
-                    data0_id = data0_in_circle[galaxyid[0]][j] - 1
-                    if SOURCE[data0_id]!=0:
-                        print "!!!",data0_id,"!!!already tagged",SOURCE[data0_id],", would like to tag 4"
-                    else:
-                        SOURCE[data0_id] = 4
-                        label4_num += 1
-                typeD_num += 1
-    
-    print 'typeA_num ', typeA_num #24 3 both detected
-    print 'label1_num ', label1_num
-    
-    print 'typeB_num ', typeB_num #24 or 3 detected
-    print 'label2_num ', label2_num #24
-    print 'label3_num ', label3_num #3
-    
-    print 'typeC_num ', typeC_num #no opt counterpart
-    
-    print 'typeD_num ', typeD_num #all selected
-    print 'label4_num ', label4_num
-    
-    print 'typeE_num ', typeE_num #ALMA detected, no opt couterpart
-    print 'ALMA_no_opt_num ', ALMA_no_opt_num
-    
-    print 'typeF_num ', typeF_num #ALMA detected
-    print 'label5_num ', label5_num
-    
-    ###output
-    print 'start writing table file'
-    output_cat = OutputCat(SOURCE_COLUMN, SOURCE)  
-    #print output_cat
-    output_cat.write(OUTPUT_CAT)
     return
+
 
 
 
@@ -864,10 +738,10 @@ time1 = time.time()
 # ===== 850 narrow - direct =====
 
 # ===== ALMA =====
-#Matching_ALMA()
+#Matching_AS2COSMOS()
 
 # ===== ALMA =====
-Matching_A3COSMOS()
+#Matching_A3COSMOS()
 
 # ===== lensing =====
 #id = 659416
@@ -876,11 +750,11 @@ Matching_A3COSMOS()
 
 # ===== 850 wide =====
 #COSMOS2015_24micron,3GHz,ALMA needed
-#Matching_850wide()
+Matching_850wide()
 
 # ===== 450 narrow =====
 #COSMOS2015_24micron,3GHz,ALMA needed
-#Matching_450narrow()
+Matching_450narrow()
 
 
 time2 = time.time()
