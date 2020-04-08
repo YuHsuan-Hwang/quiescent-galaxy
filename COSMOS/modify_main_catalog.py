@@ -82,12 +82,34 @@ def SimplifyAGNcaCat():
     t.write("COSMOS2015_"+inputcatalog+'_simple.fits')
     return
 
+def MergingMainCatTmp():
+    
+    ###set catalog name
+    inputcatalog = "COSMOS2015_"
+    cats = ["Laigle+_v1.1_simple_z",
+            "24micron","3GHz","AS2COSMOS","A3COSMOS","lensing"]
+    
+    ###read tables
+    tables = []
+    for i in range(len(cats)):
+        tables.append(Table.read(inputcatalog+cats[i]+".fits",hdu=1))
+    
+    ###merage tables
+    output_cat = hstack([tables[0],tables[1]], join_type='exact')
+    for i in range(len(cats)-2):
+        output_cat = hstack([output_cat,tables[i+2]], join_type='exact')
+    
+    ###output
+    output_cat.write("COSMOS2015_merged_tmp.fits")
+    return
+
+
 def MergingMainCat():
     
     ###set catalog name
     inputcatalog = "COSMOS2015_"
-    cats = ["Laigle+_v1.1_simple_z",\
-            "24micron","3GHz","ALMA10","lensing","850wide","450narrow",\
+    cats = ["Laigle+_v1.1_simple_z",
+            "24micron","3GHz","AS2COSMOS","A3COSMOS","lensing","850wide","450narrow",
             "cos_agn_simple","ca_all_iragns_simple"]
     
     ###read tables
@@ -156,6 +178,7 @@ time1 = time.time()
 #MergingColumnRedshift()
 
 # ===== Merging =====
+#MergingMainCatTmp()
 MergingMainCat()
 
 time2 = time.time()
