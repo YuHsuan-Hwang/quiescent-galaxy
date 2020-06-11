@@ -69,7 +69,8 @@ def Mask_class_star( index ):
 
 def MaskAll( index ):
     return Mask_M(index) & Mask_error( 1, 0.1, index ) & Mask_photoz( index ) & Mask_class_star( index )
-
+           # &((data[index]["FLAG_HJMCC"]==0) | (data[index]["FLAG_HJMCC"]==2)) &(data[index]["FLAG_COSMOS"]==1)
+           # &(data[index]["FLAG_HJMCC"]==0) &(data[index]["FLAG_COSMOS"]==1 )& (data[index]["FLAG_PETER"]==0)
 
 def Mask_classQG(    index ): return ( data[index][class_SFG]==0 )
 def Mask_classSFG(   index ): return ( data[index][class_SFG]==1 )
@@ -88,10 +89,12 @@ def Mask_masscut(index):
 def PlotHist_photoz( index, inputcolor, inputbins, labelname ):
     NBINS = inputbins
     plt.hist( data[0][photoz][mask[index]], NBINS,
-             color=inputcolor, alpha=0.8, label = labelname) 
-    plt.title( 'Histogram photoz' )
-    plt.ylabel( 'Number' )
-    plt.xlabel( 'z'      )
+             color=inputcolor, alpha=0.7, label = labelname) 
+    #plt.title( 'Histogram photoz' )
+    plt.ylabel( 'Number' , fontdict = {'fontsize' : 14} )
+    plt.xlabel( 'z'      , fontdict = {'fontsize' : 14} )
+    if (index==0): plt.xlim(0,5)
+    else: plt.xlim(0,4)
     plt.legend()
     plt.show()
     return
@@ -105,7 +108,7 @@ def PlotHist_photoz_para(indexlist,inputcolorlist,inputlabel,inputbins):
     #plt.title('COSMOS2015')
     plt.ylabel('Number', fontdict = {'fontsize' : 14})
     plt.xlabel('z', fontdict = {'fontsize' : 14})
-    plt.xlim(0,3.5)
+    #plt.xlim(0,3.5)
     plt.legend()
     plt.show()
     return
@@ -205,16 +208,25 @@ def Plot( index, scale, struc, limit, line, inputcolor,
     
     print "total sample size ", total_num
     print "QG    sample size ", QG_num
-    print "QG    percentage  ", ( "%.2f" % (QG_num/total_num*100)  ),"%"
+    print "QG    percentage  ", ( "%.1f" % (QG_num/total_num*100)  ),"$\pm$", ( "%.1f" % (np.sqrt(QG_num)/total_num*100)  ),"%"
     print "SFG   sample size ", SFG_num
-    print "SFG   percentage  ", ( "%.2f" % (SFG_num/total_num*100) ),"%"
+    print "SFG   percentage  ", ( "%.1f" % (SFG_num/total_num*100) ),"%"
     print
+    
+    return
+
+def PlotMvsZ( index, inputcolor, inputlabel ):
+    
+    plt.scatter(data[0][mask[index]][photoz],data[0][mask[index]][mass],s=1,alpha=0.1,color=inputcolor,label=inputlabel)
+    plt.xlabel( "z", fontdict = {'fontsize' : 14} )
+    plt.ylabel( "log( stellar mass($M_{\odot}$) )", fontdict = {'fontsize' : 14} )
+    plt.legend()
     
     return
 
 def PrintQGfraction(index):
     maskQG = mask[index] & Mask_myclassQG(index)
-    all_num = Num_total(index)
+    all_num = len(data[0][mask[index]])#Num_total(index)
     QG_num = len(data[0].filled()[maskQG])
     print all_num, QG_num
     fraction = QG_num*100.0 / all_num
@@ -336,12 +348,20 @@ def Print_zbin_QGfraction(index):
     
 
 
+
+
+
+
+
+
 def PlotColorColor():
     
     SetupData( MaskAll(0)                            )
     SetupData( MaskAll(0) & Mask_myclassQG(0)        )
     SetupData( MaskAll(0) & (data[0]['24MICRON']==1) )
     SetupData( MaskAll(0) & (data[0]['3GHZ']    ==1) )
+    
+    #print np.ma.median(data[0][mask[0]][photoz])
     
     fig = plt.figure(1)
     Plot( 0,0,1,1,1,'C0',0,'COSMOS2015',1,'o' )
@@ -350,27 +370,51 @@ def PlotColorColor():
     #fill_x = [-2,(3.1-1.0)/3.0,2.0,-2]
     #fill_y = [3.1,3.1,7,7]
     #plt.fill(fill_x,fill_y,'k',alpha=0.3)
-    #fig.savefig('NUVrJ_1.png', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_1.pdf', bbox_inches = 'tight', format='png', dpi=1200)
     
-    plt.figure(2)
-    PlotHist_photoz( 0,'C0',20,'COSMOS2015'    )
-    #fig.savefig('hist.png', bbox_inches = 'tight', format='png', dpi=1200)
     
-    plt.figure(3)
-    PlotHist_photoz( 1,'C0',20,'COSMOS2015,QG' )
-    #fig.savefig('hist_QG.png', bbox_inches = 'tight', format='png', dpi=1200)
-    
-    plt.figure(4)
+    fig = plt.figure(2)
     Plot( 2,0,0.5,1,1,'C1',0,'24 micron',1,'o' )
     patch = mpatches.Patch(color='C1', label='24 micron')
     plt.legend(handles=[patch])
-    #fig.savefig('NUVrJ_24.png', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_24.pdf', bbox_inches = 'tight', format='png', dpi=1200)
     
-    plt.figure(5)
+    fig = plt.figure(3)
     Plot( 3,0,0.5,1,1,'r',0,'3 GHz',1,'o' )
     patch = mpatches.Patch(color='r', label='3 GHz')
     plt.legend(handles=[patch])
-    #fig.savefig('NUVrJ_3.png', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_3.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    
+    
+    
+    '''
+    fig = plt.figure()
+    
+    #PlotHist_photoz_para([0,1],['C0','k'],["SFG+QG",'QG'],20)
+    #plt.yscale('log')
+    #fig.savefig('hist_para.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    
+    PlotHist_photoz( 0,'C0',50,"SFG+QG"    )
+    fig.savefig('hist_all.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    
+    fig = plt.figure()
+    PlotHist_photoz( 1,'k',40,"QG"    )
+    fig.savefig('hist_QG.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    
+    
+    fig = plt.figure()
+    PlotMvsZ( 0, 'C0', "SFG+QG" )
+    PlotMvsZ( 1, 'k', "QG" )
+    patch1 = mpatches.Patch( color='C0', alpha=0.7, label="SFG+QG" )
+    patch2 = mpatches.Patch( color='k', alpha=0.7,  label="QG"     )
+    plt.legend( handles=[patch1,patch2] )
+    fig.savefig('mass_z.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+
+    '''
+
+
+
+    
     
     plt.show()
     return
@@ -384,22 +428,25 @@ def PlotColorColor_Submm850():
     SetupData( MaskAll(0) &  mask_IRcpt             )
     SetupData( MaskAll(0) &  mask_ALMAcpt           )
     SetupData( MaskAll(0) & (data[0]['LENSING']==1) )
+    SetupData( MaskAll(0) & (data[0]['850WIDE']!=0) )
     
-    plt.figure(1)  
+    fig = plt.figure(1)  
     
     plt.scatter(-1000,-1000,s=1.5,color='C0',alpha=1,label='COSMOS2015')
     
     #Plot_zbin(index, scale, struc, limit, line)  
-    Plot( 1,0,-0.5,1,1, 'C4', 1,'24um or 3GHz counterpart', 0,'o' )
-    Plot( 2,0,-0.5,1,1, 'C4', 1,'ALMA counterpart',         1,'o' )
-    Plot( 3,0,-2,  1,1, 'C4', 1,'lensing case',             1,'*' )
-    Plot( 0,0, 2,  1,1, 'C0', 0,'COSMOS2015',               1,'o' )
+    #Plot( 1,0,-0.5,1,1, 'C4', 1,'24um or 3GHz counterpart', 0,'o' )
+    #Plot( 2,0,-0.5,1,1, 'C4', 1,'ALMA counterpart',         1,'o' )
+    #Plot( 3,0,-2,  1,1, 'C4', 1,'lensed system',            1,'*' )
+    #Plot( 0,0, 2,  1,1, 'C0', 0,'COSMOS2015',               1,'o' )
+    
+    Plot( 4,0, 2,  1,1, 'C0', 0,'850',               1,'o' )
     
     #fill_x = [-2,(3.1-1.0)/3.0,2.0,-2]
     #fill_y = [3.1,3.1,7,7]
     #plt.fill(fill_x,fill_y,'k',alpha=0.3)  
 
-    #fig.savefig('NUVrJ_850.png', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_850.pdf', bbox_inches = 'tight', format='png', dpi=1200)
     
     return
 
@@ -412,22 +459,25 @@ def PlotColorColor_Submm450():
     SetupData( MaskAll(0) &  mask_IRcpt             )
     SetupData( MaskAll(0) &  mask_ALMAcpt           )
     SetupData( MaskAll(0) & (data[0]['LENSING']==1) )
+    SetupData( MaskAll(0) & (data[0]['450NARROW']!=0) )
     
-    plt.figure(1)  
+    fig = plt.figure(1)  
     
     plt.scatter(-1000,-1000,s=1.5,color='C0',alpha=1,label='COSMOS2015')
     
     #Plot_zbin(index, scale, struc, limit, line)  
-    Plot( 1,0,-0.5,1,1, 'C6', 1,'24um or 3GHz counterpart', 0,'o' )
-    Plot( 2,0,-0.5,1,1, 'C6', 1,'ALMA counterpart',         1,'o' )
-    Plot( 3,0,-2,  1,1, 'C6', 1,'lensing case',             1,'*' )
-    Plot( 0,0, 2,  1,1, 'C0', 0,'COSMOS2015',               1,'o' )
+    #Plot( 1,0,-0.5,1,1, 'C6', 1,'24um or 3GHz counterpart', 0,'o' )
+    #Plot( 2,0,-0.5,1,1, 'C6', 1,'ALMA counterpart',         1,'o' )
+    #Plot( 3,0,-2,  1,1, 'C6', 1,'lensed system',            1,'*' )
+    #Plot( 0,0, 2,  1,1, 'C0', 0,'COSMOS2015',               1,'o' )
+    
+    Plot( 4,0, 2,  1,1, 'C0', 0,'450',               1,'o' )
     
     #fill_x = [-2,(3.1-1.0)/3.0,2.0,-2]
     #fill_y = [3.1,3.1,7,7]
     #plt.fill(fill_x,fill_y,'k',alpha=0.3)  
 
-    #fig.savefig('NUVrJ_450.png', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_450.pdf', bbox_inches = 'tight', format='png', dpi=1200)
     
     return
 
@@ -435,18 +485,18 @@ def PlotColorColor_Submm450():
 def PlotColorColor_radioAGN():
     
     SetupData( MaskAll(0) & (data[0]['Radio_excess']==1) & (Mask_masscut(0)) )   
-    plt.figure(1)    
+    fig = plt.figure(1)    
     Plot(0,0,0,1,1,'r',0,'radio AGN',1,'o')   
-    #fig.savefig('NUVrJradioAGN.png', format='png', dpi=1200)
+    fig.savefig('NUVrJradioAGN.pdf', format='png', dpi=1200)
     
     return
 
 def PlotColorColor_IRAGN():
 
     SetupData( MaskAll(0) & (data[0]['agn_c17b']==True) & (Mask_masscut(0)) )   
-    plt.figure(1)
+    fig = plt.figure(1)
     Plot(0,0,0,1,1,'C1',0,'IR AGN',1,'o')
-    #fig.savefig('NUVrJradioAGN.png', format='png', dpi=1200)
+    fig.savefig('NUVrJIRAGN.pdf', format='png', dpi=1200)
     
     return
 
@@ -454,9 +504,9 @@ def PlotColorColor_IRAGN():
 def PlotColorColor_XrayAGN():
 
     SetupData( MaskAll(0) & (data[0]['agn_xxx']==True) & (Mask_masscut(0)) )    
-    plt.figure(1)
+    fig = plt.figure(1)
     Plot(0,0,0,1,1,'g',0,'X-ray AGN',1,'o')
-    #fig.savefig('NUVrJradioAGN.png', format='png', dpi=1200)
+    fig.savefig('NUVrJXrayAGN.pdf', format='png', dpi=1200)
     
     return
     
@@ -478,7 +528,7 @@ def Plot_nonIRQG():
     #fig.savefig('hist_nonIRQG.png', bbox_inches = 'tight', format='png', dpi=1200)
     
     plt.figure(3)
-    PlotHist_mass( 1,'C0',20,'COSMOS2015, nonIR-QG' )
+    PlotHist_mass(   1,'C0',20,'COSMOS2015, nonIR-QG' )
     #fig.savefig('masshist_nonIRQG.png', bbox_inches = 'tight', format='png', dpi=1200)
     
     return
@@ -516,7 +566,7 @@ def Plot_QGfraction():
     plt.ylabel('QG fraction(%)', fontdict = {'fontsize' : 18})#14})
     plt.show()
     
-    #fig.savefig('QGfraction.png', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('QGfraction.pdf', bbox_inches = 'tight', format='png', dpi=1200)
  
 
 
@@ -532,13 +582,14 @@ def Plot_QGfraction():
                       color=color_list[i], label=label_list[i], capsize=5 )
 
     #plt.title('QG percentage, mass>10^11', fontdict = {'fontsize' : 20})
-    plt.xlabel('z', fontdict = {'fontsize' : 16})
-    plt.ylabel('QG fraction (%)', fontdict = {'fontsize' : 16})
+    plt.xlabel( 'z',               fontdict = {'fontsize' : 16} )
+    plt.ylabel( 'QG fraction (%)', fontdict = {'fontsize' : 16} )
     plt.legend()
     plt.show()
     
-    #fig.savefig('QGfraction_zbin.png', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('QGfraction_zbin.pdf', bbox_inches = 'tight', format='png', dpi=1200)
     
+    return
     
 def RegionFile(index,filename,mode,color,size):
     print 'Output region file...'
@@ -594,14 +645,14 @@ def taskRegionFile():
     RegionFileUnmask(0,'COSMOS_A3COSMOS',0,'yellow','0.5',"RA","DEC")
     return
 
-
+'''
 def MaskRegion(inputra,inputdec,inputradius):
     c0 = SkyCoord(ra=data[0][mask[0]][ra], dec=data[0][mask[0]][dec])
     center = SkyCoord(inputra, inputdec, frame='fk5')
     radius = inputradius
     sep = center.separation(c0)
     return sep<=radius
-
+'''
 
 def test():
     for i in range(number):
@@ -696,6 +747,340 @@ def test2():
     
     return
 
+def Mask_Region( mask,inputra,inputdec,inputradius ): #mask is not list
+    
+    c0     = SkyCoord( ra=data[0][mask][ra], dec=data[0][mask][dec] )
+    center = SkyCoord( inputra, inputdec, frame='fk5' )
+    radius = inputradius
+    sep    = center.separation( c0 )
+    
+    return sep<=radius
+
+
+def PrintSpatialoneQG(expect_num,err,match_num):
+    print "    expected QG number : ",( "%.1f" % expect_num )
+    print "    matched  QG number : ",( "%d"   % match_num  )
+    print "    difference         : ",( "%.1f" % (match_num-expect_num )    ),"+/-",( "%.1f" % err )  
+    
+def PrintSpatialoneSFG(expect_num,err,match_num):
+    print "    expected SFG number : ",( "%.1f" % expect_num )
+    print "    matched  SFG number : ",( "%d"   % match_num  )
+    print "    difference          : ",( "%.1f" % (match_num-expect_num )    ),"+/-",( "%.1f" % err )  
+    
+    
+
+def PrintSpatial():
+    
+    CENTER_RA,CENTER_DEC = '10h00m25.0s', '2d24m22.0s'
+    RADIUS               = 0.2*u.degree
+    
+    SetupData( MaskAll(0) )
+    SetupData( MaskAll(0) & Mask_myclassQG(0) )
+    SetupData( MaskAll(0) & (data[0]["850WIDE_DIRECT_ALMA"     ]==1) & Mask_myclassQG(0) )
+    SetupData( MaskAll(0) & (data[0]["850WIDE_DIRECT_NONALMA"  ]==1) & Mask_myclassQG(0) )
+    SetupData( MaskAll(0) & (data[0]["450NARROW_DIRECT_ALMA"   ]==1) & Mask_myclassQG(0) )
+    SetupData( MaskAll(0) & (data[0]["450NARROW_DIRECT_NONALMA"]==1) & Mask_myclassQG(0) )
+    SetupData( MaskAll(0) & ((data[0]["850WIDE"]==1)|(data[0]["850WIDE"]==2)|(data[0]["850WIDE"]==3)) & Mask_myclassQG(0) )
+    SetupData( MaskAll(0) & ((data[0]["450NARROW"]==1)|(data[0]["450NARROW"]==2)|(data[0]["450NARROW"]==3)) & Mask_myclassQG(0) )
+    
+    allQG_num = len( data[0][mask[1]] )
+    
+    print
+    print "spatical correlation"
+    print
+    print "1147 S2COSMOS 850um sources"
+    print
+    print "--- 166 in the outer region"
+    print
+    print "--- 981 with or without ALMA observation"
+    print
+    
+    expect_num = allQG_num*( (1147.0-166.0)*( (7.0/60.0/60.0)**2*np.pi )/1.58 )
+    match_num  = len( data[0][mask[2]] ) + len( data[0][mask[3]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneQG(132.5,16.9,match_num)
+ 
+    
+    print
+    print "--- 391 with ALMA observation"
+    print
+    
+    expect_num = allQG_num*( 391.0*( (7.0/60.0/60.0)**2*np.pi )/1.58 )
+    match_num  = len( data[0][mask[2]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneQG(48.0,5.0,match_num)   
+    
+    print
+    
+    expect_num = allQG_num*( (506.0-37.0-17.0)*( (1.0/60.0/60.0)**2*np.pi )/1.58 )
+    match_num  = len( data[0][mask[6]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    print "    expected QG number for ALMA sources : ",( "%.1f" % 1.4 )
+    print "    matched  QG number for ALMA sources : ",( "%d"   % match_num  )
+    print "    difference                          : ",( "%.1f" % (match_num-1.4)      ),"+/-",( "%.1f" % 1.1 )   
+    
+    print
+    print "--- 590 without ALMA observation"
+    print
+    
+    expect_num = allQG_num*( 590.0*( (7.0/60.0/60.0)**2*np.pi )/1.58 )
+    match_num  = len( data[0][mask[3]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneQG(79.1,14.1,match_num) 
+
+    print
+    print  
+    
+    
+    
+    
+    allQG_num = len( data[0][mask[1]][ Mask_Region(mask[1],CENTER_RA, CENTER_DEC, RADIUS) ] )
+    
+    print "357 STUDIES 450um sources"
+    print
+    print "--- 4 in the outer region"
+    print
+    print "--- 353 with or without ALMA observation"    
+    print
+    expect_num = allQG_num*( 353.0* (4.0/60.0/60.0)**2  / 0.2**2 )
+    match_num  = len( data[0][mask[4]] ) + len( data[0][mask[5]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneQG(21.9,6.4,match_num) 
+    
+    print
+    print "--- 78 with ALMA observation"
+    print
+    
+    expect_num = allQG_num*( 78.0* (4.0/60.0/60.0)**2  / 0.2**2 )
+    match_num  = len( data[0][mask[4]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneQG(4.6,1.8,match_num) 
+    
+    print
+    
+    expect_num = allQG_num*( (86.0-1.0)* (1.0/60.0/60.0)**2  / 0.2**2 )
+    match_num  = len( data[0][mask[7]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    print "    expected QG number for ALMA sources : ",( "%.1f" % 0.7 )
+    print "    matched  QG number for ALMA sources : ",( "%d"   % match_num  )
+    print "    difference                          : ",( "%.1f" % (match_num-0.7)       ),"+/-",( "%.1f" % 0.6 )  
+    
+    print
+    print "--- 275 without ALMA observation"
+    print
+    
+    expect_num = allQG_num*( 279.0* (4.0/60.0/60.0)**2  / 0.2**2 )
+    match_num  = len( data[0][mask[5]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneQG(14.7,3.0,match_num) 
+    
+    print
+    
+    return
+
+
+
+
+
+
+def PrintSpatialSFG():
+    
+    CENTER_RA,CENTER_DEC = '10h00m25.0s', '2d24m22.0s'
+    RADIUS               = 0.2*u.degree
+    
+    SetupData( MaskAll(0) )
+    SetupData( MaskAll(0) & Mask_myclassSFG(0) )
+    SetupData( MaskAll(0) & (data[0]["850WIDE_DIRECT_ALMA"     ]==1) & Mask_myclassSFG(0) )
+    SetupData( MaskAll(0) & (data[0]["850WIDE_DIRECT_NONALMA"  ]==1) & Mask_myclassSFG(0) )
+    SetupData( MaskAll(0) & (data[0]["450NARROW_DIRECT_ALMA"   ]==1) & Mask_myclassSFG(0) )
+    SetupData( MaskAll(0) & (data[0]["450NARROW_DIRECT_NONALMA"]==1) & Mask_myclassSFG(0) )
+    SetupData( MaskAll(0) & ((data[0]["850WIDE"]==1)|(data[0]["850WIDE"]==2)|(data[0]["850WIDE"]==3)) & Mask_myclassSFG(0) )
+    SetupData( MaskAll(0) & ((data[0]["450NARROW"]==1)|(data[0]["450NARROW"]==2)|(data[0]["450NARROW"]==3)) & Mask_myclassSFG(0) )
+    
+    allSFG_num = len( data[0][mask[1]] )
+    
+    print
+    print "spatical correlation"
+    print
+    print "1147 S2COSMOS 850um sources"
+    print
+    print "--- 166 in the outer region"
+    print
+    print "---",1147-166,"with or without ALMA observation"
+    print
+    
+    expect_num = allSFG_num*( (1147.0-166.0)*( (7.0/60.0/60.0)**2*np.pi )/1.58 )
+    match_num  = len( data[0][mask[2]] ) + len( data[0][mask[3]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneSFG(1176.5,38.3,match_num) 
+        
+    print
+    print "--- 391 with ALMA observation"
+    print
+    
+    expect_num = allSFG_num*( 391.0*( (7.0/60.0/60.0)**2*np.pi )/1.58 )
+    match_num  = len( data[0][mask[2]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneSFG(477.6,20.5,match_num)
+    
+    print
+    
+    expect_num = allSFG_num*( (506.0-37.0-17.0)*( (1.0/60.0/60.0)**2*np.pi )/1.58 )
+    match_num  = len( data[0][mask[6]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    print "    expected SFG number for ALMA sources : ",( "%.1f" % 11.6 )
+    print "    matched  SFG number for ALMA sources : ",( "%d"   % match_num  )
+    print "    difference                           : ",( "%.1f" % (match_num-11.6)    ),"+/-",( "%.1f" % 3.4 )   
+    
+    remain = 1147-166-391
+    print
+    print "---",remain,"without ALMA observation"
+    print
+    
+    expect_num = allSFG_num*( remain*( (7.0/60.0/60.0)**2*np.pi )/1.58 )
+    match_num  = len( data[0][mask[3]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneSFG(708.9,20.8,match_num)
+    
+    print
+    print  
+    
+    
+    
+    
+    allSFG_num = len( data[0][mask[1]][ Mask_Region(mask[1],CENTER_RA, CENTER_DEC, RADIUS) ] )
+    
+    print "357 STUDIES 450um sources"
+    print
+    print "--- 4 in the outer region"
+    print
+    print "--- 353 with or without ALMA observation"    
+    print
+    expect_num = allSFG_num*( 353.0* (4.0/60.0/60.0)**2  / 0.2**2 )
+    match_num  = len( data[0][mask[4]] ) + len( data[0][mask[5]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneSFG(157.1,9.3,match_num)
+    
+    print
+    print "--- 78 with ALMA observation"
+    print
+    
+    expect_num = allSFG_num*( 78.0* (4.0/60.0/60.0)**2  / 0.2**2 )
+    match_num  = len( data[0][mask[4]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneSFG(34.7,6.7,match_num)
+    
+    print
+    
+    expect_num = allSFG_num*( (86.0-1.0)* (1.0/60.0/60.0)**2  / 0.2**2 )
+    match_num  = len( data[0][mask[7]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    print "    expected SFG number for ALMA sources : ",( "%.1f" % 2.7 )
+    print "    matched  SFG number for ALMA sources : ",( "%d"   % match_num  )
+    print "    difference                           : ",( "%.1f" % (match_num-2.7)       ),"+/-",( "%.1f" % 1.8 )  
+    
+    print
+    print "--- 275 without ALMA observation"
+    print
+    
+    expect_num = allSFG_num*( 279.0* (4.0/60.0/60.0)**2  / 0.2**2 )
+    match_num  = len( data[0][mask[5]] )
+    diff       = match_num-expect_num
+    err        = expect_num**0.5
+    
+    PrintSpatialoneSFG(127.1,12.3,match_num)
+    
+    print 
+    
+    return
+
+
+
+
+
+
+
+def PrintLensing_z():
+    print 0.98*(2.2/14.5e-3)**0.26-1
+    print 0.98*(8.84/49.7e-3)**0.26-1
+    return
+
+
+def stacking_sfr_tmp():
+    L_IR450 = [ 2.5573646e09, 3.4028356e10, 3.5214292e10, 6.4974896e10,
+                1.4658295e10, 6.3934115e08, 3.4028356e10 ]
+    L_IR850 = [ 1.0393994e10, 1.1283071e11, 6.7596636e10, 1.3854581e11,
+                1.6799213e09, 6.7196851e09, 0.0000000,     6.8162994e09,
+                1.5864483e09, 8.0078843e09, -9.4678762e09, 3.5750400e10,
+                3.5387951e10, 3.7364623e10, 6.8862904e10, 1.2218141e11,
+                1.1661365e11, 6.6354851e10, 2.0047333e10, 1.0498772e11,
+                3.1772969e10, 1.6801486e11, 2.4162867e11, 1.0533251e12,
+                1.0103987e12, 1.0587750e12, 3.8567891e11]
+    for i in range(len(L_IR450)):
+        print L_IR450[i]*1.7e-10
+    print
+    for i in range(len(L_IR850)):
+        print L_IR850[i]*1.7e-10
+    return
+
+
+def PlotLimitMag():
+    
+    SetupData( MaskAll(0) )
+    
+    fig = plt.figure(1)
+    plt.scatter(data[0][mask[0]][V_error],data[0][mask[0]][V_mag],s=1,alpha=0.1)
+    plt.xlabel( "V error", fontdict = {'fontsize' : 14} )
+    plt.ylabel( "V", fontdict = {'fontsize' : 14} )
+    
+    fig = plt.figure(2)
+    plt.scatter(data[0][mask[0]][ip_error],data[0][mask[0]][ip_mag],s=1,alpha=0.1)
+    plt.xlabel( "ip error", fontdict = {'fontsize' : 14} )
+    plt.ylabel( "ip", fontdict = {'fontsize' : 14} )
+
+    fig = plt.figure(3)
+    plt.scatter(data[0][mask[0]][J_error],data[0][mask[0]][J_mag],s=1,alpha=0.1)
+    plt.xlabel( "J error", fontdict = {'fontsize' : 14} )
+    plt.ylabel( "J", fontdict = {'fontsize' : 14} )
+    
+    fig = plt.figure(4)
+    plt.scatter(data[0][mask[0]][Ks_error],data[0][mask[0]][Ks_mag],s=1,alpha=0.1)
+    plt.xlabel( "Ks error", fontdict = {'fontsize' : 14} )
+    plt.ylabel( "Ks", fontdict = {'fontsize' : 14} )
+    
+    #fig.savefig('NUVrJ_1.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    
+    return
+
 # =============================================================================
 # main code
 # =============================================================================
@@ -719,8 +1104,11 @@ V_error    = "V_MAGERR_APER3"
 ip_error   = "ip_MAGERR_APER3"
 J_error    = "J_MAGERR_APER3"
 Ks_error   = "Ks_MAGERR_APER3"
+V_mag      = "V_MAG_APER3"
+ip_mag     = "ip_MAG_APER3"
+J_mag      = "J_MAG_APER3"
 Ks_mag     = "Ks_MAG_APER3"
-mass       = "MASS_MED"
+#mass       = "MASS_MED"
 class_star = "TYPE"
 class_SFG  = "CLASS"
 ra         = "ALPHA_J2000"
@@ -760,6 +1148,20 @@ ReadCatalog( 0,catalog[0] )
 
 #Plot_QGfraction()
 
+
+
+
+
+#PrintSpatial()
+
+#PrintSpatialSFG()
+
+#PrintLensing_z()
+
+
+#stacking_sfr_tmp()
+
+PlotLimitMag()
 
 # ===== RegionFile =====
 '''
