@@ -1020,137 +1020,6 @@ def AS2COSMOS_outer():
     
     return
 
-def Random_matching_old():
-    
-    print "Random matching "
-    
-    ###set martirials
-    CAT  = "COSMOS2015_Laigle+_v1.1_simple_z.fits" #COSMOS2015
-    searching_radius = 1.0
-    area_searching_radius = 7.0
-    
-    ra = "ALPHA_J2000"
-    dec = "DELTA_J2000"
-    
-    ###set columns in the main catalog
-    global color1, color2, color3, photoz
-    global V_error, ip_error, J_error, Ks_error, class_star, Ks_mag
-    color1     = "MNUV"
-    color2     = "MR"
-    color3     = "MJ"
-    photoz     = "REDSHIFT"
-    V_error    = "V_MAGERR_APER3"
-    ip_error   = "ip_MAGERR_APER3"
-    J_error    = "J_MAGERR_APER3"
-    Ks_error   = "Ks_MAGERR_APER3"
-    class_star = "TYPE"
-    Ks_mag     = "Ks_MAG_APER3"
-    
-    ###read catalog
-    print "reading catalog ..."
-    global data,x,y,mask,x_masked,y_masked
-    data = [None]*1
-    x,y,mask,x_masked,y_masked = [],[],[],[],[]
-    
-    for i in range(1): ReadCat(i,data,CAT)
-    
-    time2 = time.time()
-    print 'current time :', ( time2-time1 )/60.0 , 'min'
-    
-    SetupData( MaskAll(0) )
-    SetupData( ((data[0]["FLAG_HJMCC"]==0)|(data[0]["FLAG_HJMCC"]==2)) & (data[0]["FLAG_COSMOS"]==1) )
-    #SetupData( MaskAll(0) & Mask_myclassQG(0)  )
-    #SetupData( MaskAll(0) & Mask_myclassSFG(0) )
-    
-    c0     = SkyCoord( ra=data[0][mask[0]][ra], dec=data[0][mask[0]][dec] )
-    c_area = SkyCoord( ra=data[0][mask[1]][ra], dec=data[0][mask[1]][dec] )
-    #c_QG   = SkyCoord( ra=data[0][mask[2]][ra], dec=data[0][mask[2]][dec] )
-    #c_SFG  = SkyCoord( ra=data[0][mask[3]][ra], dec=data[0][mask[3]][dec] )
-    
-    #ra_min  = data[0][ra ][mask[0]].min()
-    #ra_max  = data[0][ra ][mask[0]].max()
-    #dec_min = data[0][dec][mask[0]].min()
-    #dec_max = data[0][dec][mask[0]].max()
-    
-    center450 = SkyCoord('10h00m25.0s', '2d24m22.0s', frame='fk5')
-    
-    pos_num_list = [1] #850: 981 391 590   353  78    452 85
-    num = len(pos_num_list)
-    
-    for n in range(num):
-        test_num = 10
-        matchedQG = np.zeros(test_num)
-        matchedSFG = np.zeros(test_num)
-        pos_num = pos_num_list[n]
-        for i in range(test_num):
-            
-            #random1 = np.random.uniform(0,1,pos_num)
-            #random2 = np.random.uniform(0,1,pos_num)
-            #random_ra  = random1*(ra_max-ra_min) + ra_min
-            #random_dec = random2*(dec_max-dec_min) + dec_min
-            
-            random_ang = np.random.uniform(0,2*np.pi,pos_num)
-            random_dis = 0.2*np.sqrt(np.random.uniform(0,1,pos_num))
-            random_ra  = center450.ra.value  + random_dis*np.cos(random_ang)
-            random_dec = center450.dec.value + random_dis*np.sin(random_ang)
-            
-            for j in range(pos_num):
-                
-                center = SkyCoord( random_ra[j]*u.degree,random_dec[j]*u.degree, frame='fk5' )
-                sep_area = c_area.separation( center )
-                data_area_in_circle = data[0][mask[1]][ sep_area<=area_searching_radius*u.arcsec ]
-                
-                while(1):
-                    if ( len(data_area_in_circle)==0 ):
-                        
-                        #onerandom1 = np.random.uniform(0,1,1)
-                        #onerandom2 = np.random.uniform(0,1,1)
-                        #onerandom_ra  = onerandom1*(ra_max-ra_min) + ra_min
-                        #onerandom_dec = onerandom2*(dec_max-dec_min) + dec_min
-                        
-                        onerandom_ang = np.random.uniform(0,2*np.pi,pos_num)
-                        onerandom_dis = 0.2*np.sqrt(np.random.uniform(0,1,pos_num))
-                        onerandom_ra  = center450.ra.value  + onerandom_dis*np.cos(onerandom_ang)
-                        onerandom_dec = center450.dec.value + onerandom_dis*np.sin(onerandom_ang)
-                        
-                        center = SkyCoord( onerandom_ra[0]*u.degree,onerandom_dec[0]*u.degree, frame='fk5' )
-                        sep_area = c_area.separation( center )
-                        data_area_in_circle = data[0][mask[1]][ sep_area<=area_searching_radius*u.arcsec ]
-                        
-                    else:
-                        
-                        #sep_QG = c_QG.separation( center )
-                        #data_QG_in_circle = data[0][mask[2]][ sep_QG<=searching_radius*u.arcsec ]
-                        #sep_SFG = c_SFG.separation( center )
-                        #data_SFG_in_circle = data[0][mask[3]][ sep_SFG<=searching_radius*u.arcsec ]
-                        sep0 = c0.separation( center )
-                        data0_in_circle = data[0][mask[0]][ sep0<=searching_radius*u.arcsec ]
-                        x_in_circle = x[0][mask[0]][ sep0<=searching_radius*u.arcsec ]
-                        y_in_circle = y[0][mask[0]][ sep0<=searching_radius*u.arcsec ]
-                        
-                        maskQG_in_circle  = ( y_in_circle >  3.1 ) & ( y_in_circle >  3.0*x_in_circle+1.0 )
-                        maskSFG_in_circle = ( y_in_circle <= 3.1 ) | ( y_in_circle <= 3.0*x_in_circle+1.0 )
-                        
-                        data_QG_in_circle  = data0_in_circle[ maskQG_in_circle  ]
-                        data_SFG_in_circle = data0_in_circle[ maskSFG_in_circle ]
-                        
-                        
-                        matchedQG[i]  +=  len( data_QG_in_circle  )
-                        matchedSFG[i] +=  len( data_SFG_in_circle )
-                        
-                        break
-        
-        print  "QG  mean ",np.mean(matchedQG) 
-        print  "QG  std  ",np.std(matchedQG)
-        print  "SFG mean ",np.mean(matchedSFG) 
-        print  "SFG std  ",np.std(matchedSFG)
-        
-        plt.figure(1)
-        plt.hist(matchedQG)
-        plt.figure(2)
-        plt.hist(matchedSFG)
-            
-    return
 
 
 def Random_matching():
@@ -1158,7 +1027,7 @@ def Random_matching():
     print "Random matching "
     
     ALMA_MODE = 0  # 0: 4 and 7 radius, 1: 1 radius
-    MODE = 1       # 0: 450um,          1: 850um
+    MODE = 0       # 0: 450um,          1: 850um
     
     ###set martirials
     CAT  = "COSMOS2015_Laigle+_v1.1_simple_z.fits" #COSMOS2015
@@ -1434,24 +1303,49 @@ def Plot_Random_matching():
     QG_84p_450 = np.array( [25.0,6.0,19.0,1.0] )
     QG_std_450 = np.array( [4.76,2.08,3.97,0.51] )
     
+    print QG_mean_450
+    print QG_84p_450 - QG_mean_450
+    print QG_mean_450 - QG_16p_450
+    print np.array( [(QG_mean_450-QG_16p_450)/QG_mean_450 *100,(QG_84p_450-QG_mean_450)/QG_mean_450 *100]  )
+    print
+    
     SFG_actual_450 = np.array( [420,83,337,47] )
     SFG_mean_450 = np.array( [163.05,36.19,127.88 ,2.50] )
     SFG_16p_450 = np.array( [149.84,30.0,116.0 ,1.0] )
     SFG_84p_450 = np.array( [177.0,42.0,139.0,4.0] )
     SFG_std_450 = np.array( [13.22,6.15,11.71,1.52] )
     
+    print SFG_mean_450
+    print SFG_84p_450 - SFG_mean_450
+    print SFG_mean_450 - SFG_16p_450
+    print np.array( [(SFG_mean_450-SFG_16p_450)/SFG_mean_450 *100,(SFG_84p_450-SFG_mean_450)/SFG_mean_450 *100]  )
+    print
+    
     QG_actual_850 = np.array( [191,77,114,9] )
     QG_mean_850 = np.array( [117.36,47.21,71.09,1.096] )
     QG_16p_850 = np.array( [105.0,40.0,62.0,0.0] )
     QG_84p_850 = np.array( [129.0,54.0,80.0,2.0] )
     QG_std_850 = np.array( [12.16,7.17,9.3,1.06] )
-    
+
+    print QG_mean_850
+    print QG_84p_850 - QG_mean_850
+    print QG_mean_850 - QG_16p_850
+    print np.array( [(QG_mean_850-QG_16p_850)/QG_mean_850 *100,(QG_84p_850-QG_mean_850)/QG_mean_850 *100]  )
+    print
+
     SFG_actual_850 = np.array( [1993,801,1192,223] )
     SFG_mean_850 = np.array( [1050.89,420.42,630.64,9.78] )
     SFG_16p_850 = np.array( [1014.68,398.0,600.0,7.0] )
     SFG_84p_850 = np.array( [1086.16,443.16,660.0,13.0] )
     SFG_std_850 = np.array( [36.43,23.00,29.72,3.11] )
     
+    print SFG_mean_850
+    print SFG_84p_850 - SFG_mean_850
+    print SFG_mean_850 - SFG_16p_850
+    print np.array( [(SFG_mean_850-SFG_16p_850)/SFG_mean_850 *100,(SFG_84p_850-SFG_mean_850)/SFG_mean_850 *100]  )
+    print
+    
+    '''
     fig, axes = plt.subplots()
     
     plt.errorbar( [1,2,3,4], (QG_actual_450-QG_mean_450)/QG_mean_450 *100,
@@ -1461,12 +1355,15 @@ def Plot_Random_matching():
                  np.array( [(SFG_mean_450-SFG_16p_450)/SFG_mean_450 *100,(SFG_84p_450-SFG_mean_450)/SFG_mean_450 *100]  ),
                  color='b', fmt='D', capsize=5 ,alpha=0.8 )
     
+    patch1 = mpatches.Patch( color='r', label='QG' )
+    patch2 = mpatches.Patch( color='b', label='SFG' )
+    plt.legend( handles=[patch1,patch2],loc=4 )
     
     plt.setp( axes, xticks=[y_axes+1 for y_axes in range(4)], xticklabels=label_list )
     plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
     
     plt.axis([0.2,3.8,-50,200])
-    
+    fig.savefig('spatial_4.png', bbox_inches = 'tight', format='png', dpi=400)
     
     fig, axes = plt.subplots()
     
@@ -1477,13 +1374,17 @@ def Plot_Random_matching():
                  np.array( [(SFG_mean_850-SFG_16p_850)/SFG_mean_850 *100,(SFG_84p_850-SFG_mean_850)/SFG_mean_850 *100]  ),
                  color='b', fmt='D', capsize=5 ,alpha=0.8 )
     
+    patch1 = mpatches.Patch( color='r', label='QG' )
+    patch2 = mpatches.Patch( color='b', label='SFG' )
+    plt.legend( handles=[patch1,patch2],loc=4 )
     
     plt.setp( axes, xticks=[y_axes+1 for y_axes in range(4)], xticklabels=label_list )
     plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
     
     plt.axis([0.2,3.8,0,100])
+    fig.savefig('spatial_7.png', bbox_inches = 'tight', format='png', dpi=400)
     
-    print (QG_actual_450[3]-QG_mean_450[3])/QG_mean_450[3] *100
+    #print (QG_actual_450[3]-QG_mean_450[3])/QG_mean_450[3] *100
     
     fig, axes = plt.subplots()
     
@@ -1499,14 +1400,21 @@ def Plot_Random_matching():
     plt.errorbar( 2, (SFG_actual_850[3]-SFG_mean_850[3])/SFG_mean_850[3] *100,
                  np.array([[(SFG_mean_850[3]-SFG_16p_850[3])/SFG_mean_850[3] *100,(SFG_84p_850[3]-SFG_mean_850[3])/SFG_mean_850[3] *100] ] ).T,
                  color='b', fmt='D', capsize=5 ,alpha=0.8 )
+
+    patch1 = mpatches.Patch( color='r', label='QG' )
+    patch2 = mpatches.Patch( color='b', label='SFG' )
+    plt.legend( handles=[patch1,patch2],loc=4 )
     
     plt.setp( axes, xticks=[y_axes+1 for y_axes in range(2)], xticklabels=[450,850] )
     plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
     
     plt.axis([0.2,2.8,250,2500])
     
+    fig.savefig('spatial_1.png', bbox_inches = 'tight', format='png', dpi=400)
     
+    '''
     
+    '''
     fig, axes = plt.subplots()
     
     plt.errorbar( [1,2,3,4], (QG_actual_450-QG_mean_450)/QG_mean_450 *100,
@@ -1617,7 +1525,7 @@ def Plot_Random_matching():
     
     plt.axis([0.2,2.8,250,2500])
     
-    
+    '''
     
     return
     
@@ -1667,8 +1575,8 @@ time1 = time.time()
 #AS2COSMOS_outer()
 #A3COSMOS_outer()
 
-#Random_matching()
-Plot_Random_matching()
+Random_matching()
+#Plot_Random_matching()
 
 #CalDist()
 
