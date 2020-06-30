@@ -118,7 +118,7 @@ def PlotHist_M(index):
     histcolor = [ 'b', 'g', 'r' ]
     for i in range(3):
         plt.subplot(3, 1, i+1)
-        histdata = data[index][color[i]][mask[index]]
+        histdata = data[0][color[i]][mask[index]]
         plt.hist(histdata, NBINS, color=histcolor[i], alpha=0.7,label=color[i])
         if (i==0):
             plt.title('Histogram')
@@ -362,6 +362,8 @@ def PlotColorColor():
     SetupData( MaskAll(0) & (data[0]['3GHZ']    ==1) )
     
     #print np.ma.median(data[0][mask[0]][photoz])
+    #PlotHist_M(1)
+    
     
     fig = plt.figure(1)
     Plot( 0,0,1,1,1,'C0',0,'COSMOS2015',1,'o' )
@@ -370,24 +372,24 @@ def PlotColorColor():
     #fill_x = [-2,(3.1-1.0)/3.0,2.0,-2]
     #fill_y = [3.1,3.1,7,7]
     #plt.fill(fill_x,fill_y,'k',alpha=0.3)
-    #fig.savefig('NUVrJ_1.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_1.png', bbox_inches = 'tight', format='png', dpi=400)
     
     
     fig = plt.figure(2)
     Plot( 2,0,0.5,1,1,'C1',0,'24 micron',1,'o' )
     patch = mpatches.Patch(color='C1', label='24 micron')
     plt.legend(handles=[patch])
-    #fig.savefig('NUVrJ_24.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_24.png', bbox_inches = 'tight', format='png', dpi=400)
     
     fig = plt.figure(3)
     Plot( 3,0,0.5,1,1,'r',0,'3 GHz',1,'o' )
     patch = mpatches.Patch(color='r', label='3 GHz')
     plt.legend(handles=[patch])
-    #fig.savefig('NUVrJ_3.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_3.png', bbox_inches = 'tight', format='png', dpi=400)
     
     
     
-    '''
+
     fig = plt.figure()
     
     #PlotHist_photoz_para([0,1],['C0','k'],["SFG+QG",'QG'],20)
@@ -395,11 +397,11 @@ def PlotColorColor():
     #fig.savefig('hist_para.pdf', bbox_inches = 'tight', format='png', dpi=1200)
     
     PlotHist_photoz( 0,'C0',50,"SFG+QG"    )
-    fig.savefig('hist_all.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    fig.savefig('hist_all.png', bbox_inches = 'tight', format='png', dpi=400)
     
     fig = plt.figure()
     PlotHist_photoz( 1,'k',40,"QG"    )
-    fig.savefig('hist_QG.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('hist_QG.png', bbox_inches = 'tight', format='png', dpi=400)
     
     
     fig = plt.figure()
@@ -408,12 +410,7 @@ def PlotColorColor():
     patch1 = mpatches.Patch( color='C0', alpha=0.7, label="SFG+QG" )
     patch2 = mpatches.Patch( color='k', alpha=0.7,  label="QG"     )
     plt.legend( handles=[patch1,patch2] )
-    fig.savefig('mass_z.pdf', bbox_inches = 'tight', format='png', dpi=1200)
-
-    '''
-
-
-
+    #fig.savefig('mass_z.png', bbox_inches = 'tight', format='png', dpi=400)
     
     
     plt.show()
@@ -428,48 +425,57 @@ def PlotColorColor_Submm850():
     SetupData( MaskAll(0) &  mask_IRcpt             )
     SetupData( MaskAll(0) &  mask_ALMAcpt           )
     SetupData( MaskAll(0) & (data[0]['LENSING']==1) )
-    SetupData( MaskAll(0) & (data[0]['850WIDE']!=0) )
+    SetupData( MaskAll(0) & (data[0]['850WIDE']!=0)& (data[0]['850WIDE']!=7) & Mask_myclassQG(0) )
+    
+    for i in range( len(data[0][mask[4]]) ):
+        print  x_masked[4][i], y_masked[4][i], data[0][mask[4]][photoz][i]
     
     fig = plt.figure(1)  
+    
+    for i in range( len(data[0][mask[4]]) ):
+        plt.text( x_masked[4][i], y_masked[4][i], data[0][mask[4]][photoz][i], fontsize=6 )
     
     plt.scatter(-1000,-1000,s=1.5,color='C0',alpha=1,label='COSMOS2015')
     
     #Plot_zbin(index, scale, struc, limit, line)  
-    #Plot( 1,0,-0.5,1,1, 'C4', 1,'24um or 3GHz counterpart', 0,'o' )
-    #Plot( 2,0,-0.5,1,1, 'C4', 1,'ALMA counterpart',         1,'o' )
-    #Plot( 3,0,-2,  1,1, 'C4', 1,'lensed system',            1,'*' )
-    #Plot( 0,0, 2,  1,1, 'C0', 0,'COSMOS2015',               1,'o' )
+    Plot( 1,0,-0.5,1,1, 'C4', 1,'24um or 3GHz counterpart', 0,'o' )
+    Plot( 2,0,-0.5,1,1, 'C4', 1,'ALMA counterpart',         1,'o' )
+    Plot( 3,0,-2,  1,1, 'C4', 1,'lensed system',            1,'*' )
+    Plot( 0,0, 2,  1,1, 'C0', 0,'COSMOS2015',               1,'o' )
     
-    Plot( 4,0, 2,  1,1, 'C0', 0,'850',               1,'o' )
+    #Plot( 4,0, 2,  1,1, 'C0', 0,'850',               1,'o' )
     
     #fill_x = [-2,(3.1-1.0)/3.0,2.0,-2]
     #fill_y = [3.1,3.1,7,7]
     #plt.fill(fill_x,fill_y,'k',alpha=0.3)  
 
-    #fig.savefig('NUVrJ_850.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_850.png', bbox_inches = 'tight', format='png', dpi=400)
     
     return
 
 def PlotColorColor_Submm450():
     
-    mask_ALMAcpt = ( (data[0]['450NARROW']==1)|(data[0]['450NARROW']==2)|(data[0]['450NARROW']==3) ) & (data[0]['LENSING']==0)
+    mask_ALMAcpt = ( (data[0]['450NARROW']==1)|(data[0]['450NARROW']==2)|(data[0]['450NARROW']==3) & (data[0]['LENSING']==0) )
     mask_IRcpt   =   (data[0]['450NARROW']==4)|(data[0]['450NARROW']==5)|(data[0]['450NARROW']==6)
     
     SetupData( MaskAll(0)                           )
     SetupData( MaskAll(0) &  mask_IRcpt             )
     SetupData( MaskAll(0) &  mask_ALMAcpt           )
     SetupData( MaskAll(0) & (data[0]['LENSING']==1) )
-    SetupData( MaskAll(0) & (data[0]['450NARROW']!=0) )
+    SetupData( MaskAll(0) & (data[0]['450NARROW']!=0)& (data[0]['450NARROW']!=7) & Mask_myclassQG(0) )
     
     fig = plt.figure(1)  
+    
+    for i in range( len(data[0][mask[4]]) ):
+        plt.text( x_masked[4][i], y_masked[4][i], data[0][mask[4]][photoz][i], fontsize=6 )
     
     plt.scatter(-1000,-1000,s=1.5,color='C0',alpha=1,label='COSMOS2015')
     
     #Plot_zbin(index, scale, struc, limit, line)  
-    #Plot( 1,0,-0.5,1,1, 'C6', 1,'24um or 3GHz counterpart', 0,'o' )
-    #Plot( 2,0,-0.5,1,1, 'C6', 1,'ALMA counterpart',         1,'o' )
-    #Plot( 3,0,-2,  1,1, 'C6', 1,'lensed system',            1,'*' )
-    #Plot( 0,0, 2,  1,1, 'C0', 0,'COSMOS2015',               1,'o' )
+    Plot( 1,0,-0.5,1,1, 'C6', 1,'24um or 3GHz counterpart', 0,'o' )
+    Plot( 2,0,-0.5,1,1, 'C6', 1,'ALMA counterpart',         1,'o' )
+    Plot( 3,0,-2,  1,1, 'C6', 1,'lensed system',            1,'*' )
+    Plot( 0,0, 2,  1,1, 'C0', 0,'COSMOS2015',               1,'o' )
     
     Plot( 4,0, 2,  1,1, 'C0', 0,'450',               1,'o' )
     
@@ -477,7 +483,7 @@ def PlotColorColor_Submm450():
     #fill_y = [3.1,3.1,7,7]
     #plt.fill(fill_x,fill_y,'k',alpha=0.3)  
 
-    #fig.savefig('NUVrJ_450.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    #fig.savefig('NUVrJ_450.png', bbox_inches = 'tight', format='png', dpi=400)
     
     return
 
@@ -487,7 +493,7 @@ def PlotColorColor_radioAGN():
     SetupData( MaskAll(0) & (data[0]['Radio_excess']==1) & (Mask_masscut(0)) )   
     fig = plt.figure(1)    
     Plot(0,0,0,1,1,'r',0,'radio AGN',1,'o')   
-    fig.savefig('NUVrJradioAGN.pdf', format='png', dpi=1200)
+    fig.savefig('NUVrJradioAGN.png', format='png', dpi=400)
     
     return
 
@@ -496,7 +502,7 @@ def PlotColorColor_IRAGN():
     SetupData( MaskAll(0) & (data[0]['agn_c17b']==True) & (Mask_masscut(0)) )   
     fig = plt.figure(1)
     Plot(0,0,0,1,1,'C1',0,'IR AGN',1,'o')
-    fig.savefig('NUVrJIRAGN.pdf', format='png', dpi=1200)
+    fig.savefig('NUVrJIRAGN.png', format='png', dpi=400)
     
     return
 
@@ -506,7 +512,7 @@ def PlotColorColor_XrayAGN():
     SetupData( MaskAll(0) & (data[0]['agn_xxx']==True) & (Mask_masscut(0)) )    
     fig = plt.figure(1)
     Plot(0,0,0,1,1,'g',0,'X-ray AGN',1,'o')
-    fig.savefig('NUVrJXrayAGN.pdf', format='png', dpi=1200)
+    fig.savefig('NUVrJXrayAGN.png', format='png', dpi=400)
     
     return
     
@@ -566,7 +572,7 @@ def Plot_QGfraction():
     plt.ylabel('QG fraction(%)', fontdict = {'fontsize' : 18})#14})
     plt.show()
     
-    #fig.savefig('QGfraction.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    fig.savefig('QGfraction.png', bbox_inches = 'tight', format='png', dpi=400)
  
 
 
@@ -587,7 +593,7 @@ def Plot_QGfraction():
     plt.legend()
     plt.show()
     
-    #fig.savefig('QGfraction_zbin.pdf', bbox_inches = 'tight', format='png', dpi=1200)
+    fig.savefig('QGfraction_zbin.png', bbox_inches = 'tight', format='png', dpi=400)
     
     return
     
@@ -1056,30 +1062,98 @@ def stacking_sfr_tmp():
 def PlotLimitMag():
     
     SetupData( MaskAll(0) )
+    #SetupData( MaskAll(0) & (data[0][V_error]<0.0) )
+    #SetupData( MaskAll(0) & (data[0][V_error]<-20.0) )
     
-    fig = plt.figure(1)
-    plt.scatter(data[0][mask[0]][V_error],data[0][mask[0]][V_mag],s=1,alpha=0.1)
+    print len( data[0][mask[0]] )
+    #print len( data[0][mask[1]] )
+    #print len( data[0][mask[2]] )
+    
+    fig = plt.subplot(2,2,1)
+    plt.scatter(data[0][mask[0]][V_error],data[0][mask[0]][V_mag],s=2,alpha=0.1)
     plt.xlabel( "V error", fontdict = {'fontsize' : 14} )
     plt.ylabel( "V", fontdict = {'fontsize' : 14} )
+    plt.gca().invert_yaxis()
+    plt.xlim(-0.1,0.8)
+    plt.ylim(29,17)
+    print
+    print '99% value: ', np.percentile(data[0][mask[0]][V_mag],99.9)
+    SetupData( MaskAll(0) & (data[0][V_mag]>np.percentile(data[0][mask[0]][V_mag],99.9)) )
+    mean = np.log10( np.mean( 10**data[0][mask[1]][V_mag] ) )
+    print 'mean of the last 1%: ', mean
+    print 'median of the last 1%: ', np.median( data[0][mask[1]][V_mag] )
+    plt.axhline( mean, linestyle='dotted' )
+    plt.axhline( np.median( data[0][mask[1]][V_mag] ), linestyle='dotted', color='r' )
+    print 'min: ',max(data[0][mask[1]][V_mag])
+    plt.axhline( max( data[0][mask[1]][V_mag] ), linestyle='dotted', color='k' )
     
-    fig = plt.figure(2)
-    plt.scatter(data[0][mask[0]][ip_error],data[0][mask[0]][ip_mag],s=1,alpha=0.1)
+    
+    
+    fig = plt.subplot(2,2,2)
+    plt.scatter(data[0][mask[0]][ip_error],data[0][mask[0]][ip_mag],s=2,alpha=0.1)
     plt.xlabel( "ip error", fontdict = {'fontsize' : 14} )
     plt.ylabel( "ip", fontdict = {'fontsize' : 14} )
-
-    fig = plt.figure(3)
-    plt.scatter(data[0][mask[0]][J_error],data[0][mask[0]][J_mag],s=1,alpha=0.1)
+    plt.gca().invert_yaxis()
+    plt.xlim(-0.1,0.8)
+    plt.ylim(28,17)
+    print
+    print '99% value: ',np.percentile(data[0][mask[0]][ip_mag],99.9)
+    SetupData( MaskAll(0) & (data[0][ip_mag]>np.percentile(data[0][mask[0]][ip_mag],99.9)) )
+    mean = np.log10( np.mean( 10**data[0][mask[2]][ip_mag] ) )
+    print 'mean of the last 1%: ', mean
+    print 'median of the last 1%: ', np.median( data[0][mask[2]][ip_mag] )
+    plt.axhline( mean, linestyle='dotted' )
+    plt.axhline( np.median( data[0][mask[2]][ip_mag] ), linestyle='dotted', color='r' )
+    print 'min: ',max(data[0][mask[2]][ip_mag])
+    plt.axhline( max( data[0][mask[2]][ip_mag] ), linestyle='dotted', color='k' )
+    
+    
+    fig = plt.subplot(2,2,3)
+    plt.scatter(data[0][mask[0]][J_error],data[0][mask[0]][J_mag],s=2,alpha=0.1)
     plt.xlabel( "J error", fontdict = {'fontsize' : 14} )
     plt.ylabel( "J", fontdict = {'fontsize' : 14} )
+    plt.gca().invert_yaxis()
+    plt.xlim(-5,25)
+    plt.ylim(32,15)
+    print
+    print '99% value: ',np.percentile(data[0][mask[0]][J_mag],99.9)
+    SetupData( MaskAll(0) & (data[0][J_mag]>np.percentile(data[0][mask[0]][J_mag],99.9)) )
+    mean = np.log10( np.mean( 10**data[0][mask[3]][J_mag] ) )
+    print 'mean of the last 1%: ', mean
+    print 'median of the last 1%: ', np.median( data[0][mask[3]][J_mag] )
+    plt.axhline( mean, linestyle='dotted' )
+    plt.axhline( np.median( data[0][mask[3]][J_mag] ), linestyle='dotted', color='r' )
+    print 'min: ',max(data[0][mask[3]][J_mag])
+    plt.axhline( max( data[0][mask[3]][J_mag] ), linestyle='dotted', color='k' )
     
-    fig = plt.figure(4)
-    plt.scatter(data[0][mask[0]][Ks_error],data[0][mask[0]][Ks_mag],s=1,alpha=0.1)
+    
+    fig = plt.subplot(2,2,4)
+    plt.scatter(data[0][mask[0]][Ks_error],data[0][mask[0]][Ks_mag],s=2,alpha=0.1)
     plt.xlabel( "Ks error", fontdict = {'fontsize' : 14} )
     plt.ylabel( "Ks", fontdict = {'fontsize' : 14} )
+    plt.gca().invert_yaxis()
+    plt.xlim(-10,90)
+    plt.ylim(33,16)
+    print
+    print '99% value: ',np.percentile(data[0][mask[0]][Ks_mag],99.9)
+    SetupData( MaskAll(0) & (data[0][Ks_mag]>np.percentile(data[0][mask[0]][Ks_mag],99.9)) )
+    mean = np.log10( np.mean( 10**data[0][mask[4]][Ks_mag] ) )
+    print 'mean of the last 1%: ', mean
+    print 'median of the last 1%: ', np.median( data[0][mask[4]][Ks_mag] )
+    plt.axhline( mean, linestyle='dotted' )
+    plt.axhline( np.median( data[0][mask[4]][Ks_mag] ), linestyle='dotted', color='r')
+    print 'min: ',max(data[0][mask[4]][Ks_mag])
+    plt.axhline( max( data[0][mask[4]][Ks_mag] ), linestyle='dotted', color='k' )
     
+      
     #fig.savefig('NUVrJ_1.pdf', bbox_inches = 'tight', format='png', dpi=1200)
     
     return
+
+def PrintBSMGfraction():
+    print 14764+1821, 1821.0/(14764.0+1821.0),np.sqrt(1821)/(14764.0+1821.0)
+    print 8.0/1821.0, np.sqrt(8)/1821.0
+    print 27.0/17811.0, np.sqrt(27)/17811.0
 
 # =============================================================================
 # main code
@@ -1162,6 +1236,9 @@ ReadCatalog( 0,catalog[0] )
 #stacking_sfr_tmp()
 
 PlotLimitMag()
+
+
+#PrintBSMGfraction()
 
 # ===== RegionFile =====
 '''
