@@ -77,6 +77,9 @@ def Mask_classSFG(   index ): return ( data[index][class_SFG]==1 )
 def Mask_myclassQG(  index ): return ( y[index]> 3.1 ) & ( y[index]> 3.0*x[index]+1.0 )
 def Mask_myclassSFG( index ): return ( y[index]<=3.1 ) | ( y[index]<=3.0*x[index]+1.0 )
 
+def Mask_myclassQG_UVJ(  index,delta ): return ( y[index]> 1.0 ) & ( x[index]< 1.6 ) & ( y[index]> 0.88*x[index]+delta-0.3 )
+def Mask_myclassSFG_UVJ(  index,delta ): return ( y[index]<= 1.0 ) | ( x[index]>= 1.6 ) | ( y[index]<= 0.88*x[index]+delta-0.3 )
+
 def Mask_nonSMG( index ): return ( data[index]['850WIDE'] ==0 ) | ( data[index]['850WIDE']     ==7 )
 def Mask_nonIRB( index ): return ( data[index]['24MICRON']==0 ) & ( data[index]['Radio_excess']!=0 ) #radio excess = -99 or 1
 
@@ -313,7 +316,75 @@ def Plot_zbin(index, scale, struc, limit, line, inputcolor,labelname):
             plt.axis('scaled')
         if (line==1):
             DrawLine()
-        plt.legend()
+        #plt.legend()
+    plt.show()
+    return
+
+def DrawLine_UVJ_orig(delta):
+    plt.plot( [1.6,1.6], [0.88*1.6+delta,3], 'k-' )
+    plt.plot( [-3,(1.3-delta)/0.88], [1.3,1.3], 'k-' )
+    plt.plot( [(1.3-delta)/0.88,1.6], [1.3,0.88*1.6+delta], 'k-' )
+    return
+
+def DrawLine_UVJ(delta):
+    plt.plot( [1.6,1.6], [0.88*1.6+delta-0.3,3], 'k-' )
+    plt.plot( [-3,(1.3-delta)/0.88], [1.3-0.3,1.3-0.3], 'k-' )
+    plt.plot( [(1.3-delta)/0.88,1.6], [1.3-0.3,0.88*1.6+delta-0.3], 'k-' )
+    return
+
+def Plot_zbin_UVJ(index, scale, struc, limit, line, inputcolor,labelname):
+    if (struc==1):
+        set_s = 0.5
+        set_alpha = 0.1
+    else:
+        set_s = 1
+        set_alpha = 1
+    mask_zbin = Construct_mask_zbin(index)
+    zbin_title = Construct_zbin_title()
+
+    for i in range(8):
+        plt.subplot(2, 4, i+1)
+        if (i==0):
+            datamask = mask[index] & mask_zbin[i]
+            datamaskQG = mask[index] & mask_zbin[i] & Mask_myclassQG_UVJ(index,0.69)
+            datamask1 = mask[1] & mask_zbin[i]
+            datamaskQG1 = mask[1] & mask_zbin[i] & Mask_myclassQG_UVJ(1,0.69)
+        elif (i==1):
+            datamask = mask[index] & mask_zbin[i]
+            datamaskQG = mask[index] & mask_zbin[i] & Mask_myclassQG_UVJ(index,0.59)
+            datamask1 = mask[1] & mask_zbin[i]
+            datamaskQG1 = mask[1] & mask_zbin[i] & Mask_myclassQG_UVJ(1,0.59)
+        else:
+            datamask = mask[index] & mask_zbin[i]
+            datamaskQG = mask[index] & mask_zbin[i] & Mask_myclassQG_UVJ(index,0.49)
+            datamask1 = mask[1] & mask_zbin[i]
+            datamaskQG1 = mask[1] & mask_zbin[i] & Mask_myclassQG_UVJ(1,0.49)
+        datax = x[index][datamask]
+        datay = y[index][datamask]
+        plt.scatter( datax, datay, s=set_s, alpha=set_alpha,color=inputcolor, label=labelname)
+        #print len(x[index][datamaskQG].filled())
+        if len(x[index][datamask].filled())==0:
+            plt.title(zbin_title[i]+', 0.00%')
+        else:
+            plt.title(zbin_title[i]+', '+str(len(x[index][datamask].filled()))+', '+\
+                      str( "%.2f" % ((len(x[index][datamaskQG].filled()))*100.0\
+                                     /len(x[index][datamask].filled())) )+'%')
+        if ((i==4) | (i==5) | (i==6) | (i==7)):
+            plt.xlabel(set_xlable)
+        if ((i==0) | (i==4)):
+            plt.ylabel(set_ylable)
+        if (limit==1):
+            plt.axis([-0.7,2.3,-0.5,2.3])
+        if (scale==1):
+            plt.axis('scaled')
+        if (line==1):
+            if (i==0):
+                DrawLine_UVJ(0.69)
+            elif (i==1):
+                DrawLine_UVJ(0.59)
+            else:
+                DrawLine_UVJ(0.49)
+        #plt.legend()
     plt.show()
     return
 
@@ -356,7 +427,9 @@ def Print_zbin_QGfraction(index):
 
 def PlotColorColor():
     
-    SetupData( MaskAll(0)                            )
+    SetupData( MaskAll(0)                          )
+    SetupData( MaskAll(0) & Mask_classQG(0)        )
+    
     SetupData( MaskAll(0) & Mask_myclassQG(0)        )
     SetupData( MaskAll(0) & (data[0]['24MICRON']==1) )
     SetupData( MaskAll(0) & (data[0]['3GHZ']    ==1) )
@@ -366,15 +439,18 @@ def PlotColorColor():
     
     
     fig = plt.figure(1)
-    Plot( 0,0,1,1,1,'C0',0,'COSMOS2015',1,'o' )
-    patch = mpatches.Patch( color='C0', label='COSMOS2015' )
-    plt.legend( handles=[patch] )
+    #Plot( 0,0,1,1,1,'C0',0,'COSMOS2015',1,'o' )
+    Plot_zbin(0, 0, 1, 1, 1, 'C0',"")
+    
+    #patch = mpatches.Patch( color='C0', label='COSMOS2015' )
+    #plt.legend( handles=[patch] )
     #fill_x = [-2,(3.1-1.0)/3.0,2.0,-2]
     #fill_y = [3.1,3.1,7,7]
     #plt.fill(fill_x,fill_y,'k',alpha=0.3)
     #fig.savefig('NUVrJ_1.png', bbox_inches = 'tight', format='png', dpi=400)
-    
-    
+
+
+    '''
     fig = plt.figure(2)
     Plot( 2,0,0.5,1,1,'C1',0,'24 micron',1,'o' )
     patch = mpatches.Patch(color='C1', label='24 micron')
@@ -412,8 +488,47 @@ def PlotColorColor():
     plt.legend( handles=[patch1,patch2] )
     #fig.savefig('mass_z.png', bbox_inches = 'tight', format='png', dpi=400)
     
+    '''
     
     plt.show()
+    return
+
+def PlotColorColor_UVJ():
+
+    
+    global colorname1, colorname2, colorname3, color1, color2, color3, color, set_xlable, set_ylable 
+    
+    ###set colors
+    colorname1 = "U"
+    colorname2 = "V"
+    colorname3 = "J"
+    
+    ###set columns in the main catalog
+    color1 = "MU"
+    color2 = "MV"
+    color3 = "MJ"
+    color  = [ color1, color2, color3 ]
+
+    set_xlable = '$M_{'+colorname2+'}-M_{'+colorname3+'}$'
+    set_ylable = '$M_{'+colorname1+'}-M_{'+colorname2+'}$' 
+
+    
+    SetupData( MaskAll(0)                    )
+    SetupData( MaskAll(0) & Mask_classSFG(0) )
+    SetupData( MaskAll(0) & Mask_classQG(0)  )
+    
+    fig = plt.figure(1)
+    #patch = mpatches.Patch( color='C0', label='COSMOS2015' )
+    #plt.legend( handles=[patch] )
+    #fill_x = [-2,(3.1-1.0)/3.0,2.0,-2]
+    #fill_y = [3.1,3.1,7,7]
+    #plt.fill(fill_x,fill_y,'k',alpha=0.3)
+    #fig.savefig('NUVrJ_1.png', bbox_inches = 'tight', format='png', dpi=400)
+    #Plot( 1,0,1,1,1,'k',0,'COSMOS2015',1,'o' )
+    
+    Plot_zbin_UVJ(1, 0, 1, 1, 1, 'C0',"SFG")
+    #Plot_zbin_UVJ(2, 0, 1, 1, 1, 'k',"QG")
+    
     return
 
 def PlotColorColor_Submm850():
@@ -492,8 +607,9 @@ def PlotColorColor_radioAGN():
     
     SetupData( MaskAll(0) & (data[0]['Radio_excess']==1) & (Mask_masscut(0)) )   
     fig = plt.figure(1)    
-    Plot(0,0,0,1,1,'r',0,'radio AGN',1,'o')   
-    fig.savefig('NUVrJradioAGN.png', format='png', dpi=400)
+    #Plot(0,0,0,1,1,'r',0,'radio AGN',1,'o')
+    PlotHist_photoz( 0,'r',10,"radio"    )
+    #fig.savefig('NUVrJradioAGN.png', format='png', dpi=400)
     
     return
 
@@ -501,8 +617,9 @@ def PlotColorColor_IRAGN():
 
     SetupData( MaskAll(0) & (data[0]['agn_c17b']==True) & (Mask_masscut(0)) )   
     fig = plt.figure(1)
-    Plot(0,0,0,1,1,'C1',0,'IR AGN',1,'o')
-    fig.savefig('NUVrJIRAGN.png', format='png', dpi=400)
+    #Plot(0,0,0,1,1,'C1',0,'IR AGN',1,'o')
+    PlotHist_photoz( 0,'C1',10,"IR"    )
+    #fig.savefig('NUVrJIRAGN.png', format='png', dpi=400)
     
     return
 
@@ -511,8 +628,9 @@ def PlotColorColor_XrayAGN():
 
     SetupData( MaskAll(0) & (data[0]['agn_xxx']==True) & (Mask_masscut(0)) )    
     fig = plt.figure(1)
-    Plot(0,0,0,1,1,'g',0,'X-ray AGN',1,'o')
-    fig.savefig('NUVrJXrayAGN.png', format='png', dpi=400)
+    #Plot(0,0,0,1,1,'g',0,'X-ray AGN',1,'o')
+    PlotHist_photoz( 0,'g',10,"X"    )
+    #fig.savefig('NUVrJXrayAGN.png', format='png', dpi=400)
     
     return
     
@@ -1058,6 +1176,28 @@ def stacking_sfr_tmp():
         print L_IR850[i]*1.7e-10
     return
 
+def PlotMagerrMag( band, mag, error, index ):
+    
+    plt.scatter(data[0][mask[0]][error],data[0][mask[0]][mag],s=2,alpha=0.1)
+    plt.xlabel( band+" error", fontdict = {'fontsize' : 14} )
+    plt.ylabel( band,          fontdict = {'fontsize' : 14} )
+    plt.gca().invert_yaxis()
+    plt.xlim(-0.1,0.8)
+    plt.ylim(29,17)
+    print
+
+    d = 0.001
+    SetupData( MaskAll(0) & (data[0][error]<(0.1+d)) & (data[0][error]>(0.1-d)) )
+    print len( data[0][mask[index]][mag] )
+    mean = np.log10( np.mean( 10**data[0][mask[index]][mag] ) )
+    median = np.median( data[0][mask[index]][mag] )
+    print 'mean   of err=0.1: ', mean
+    print 'median of err=0.1: ', median
+    plt.axhline( mean,   linestyle='dotted', color='g' )
+    plt.axhline( median, linestyle='dotted', color='r' )  
+    plt.axvline( 0.1, color='k' )
+    
+    return
 
 def PlotLimitMag():
     
@@ -1070,82 +1210,18 @@ def PlotLimitMag():
     #print len( data[0][mask[2]] )
     
     fig = plt.subplot(2,2,1)
-    plt.scatter(data[0][mask[0]][V_error],data[0][mask[0]][V_mag],s=2,alpha=0.1)
-    plt.xlabel( "V error", fontdict = {'fontsize' : 14} )
-    plt.ylabel( "V", fontdict = {'fontsize' : 14} )
-    plt.gca().invert_yaxis()
-    plt.xlim(-0.1,0.8)
-    plt.ylim(29,17)
-    print
-    print '99% value: ', np.percentile(data[0][mask[0]][V_mag],99.9)
-    SetupData( MaskAll(0) & (data[0][V_mag]>np.percentile(data[0][mask[0]][V_mag],99.9)) )
-    mean = np.log10( np.mean( 10**data[0][mask[1]][V_mag] ) )
-    print 'mean of the last 1%: ', mean
-    print 'median of the last 1%: ', np.median( data[0][mask[1]][V_mag] )
-    plt.axhline( mean, linestyle='dotted' )
-    plt.axhline( np.median( data[0][mask[1]][V_mag] ), linestyle='dotted', color='r' )
-    print 'min: ',max(data[0][mask[1]][V_mag])
-    plt.axhline( max( data[0][mask[1]][V_mag] ), linestyle='dotted', color='k' )
-    
-    
+    PlotMagerrMag( "V", V_mag, V_error, 1 )
+       
     
     fig = plt.subplot(2,2,2)
-    plt.scatter(data[0][mask[0]][ip_error],data[0][mask[0]][ip_mag],s=2,alpha=0.1)
-    plt.xlabel( "ip error", fontdict = {'fontsize' : 14} )
-    plt.ylabel( "ip", fontdict = {'fontsize' : 14} )
-    plt.gca().invert_yaxis()
-    plt.xlim(-0.1,0.8)
-    plt.ylim(28,17)
-    print
-    print '99% value: ',np.percentile(data[0][mask[0]][ip_mag],99.9)
-    SetupData( MaskAll(0) & (data[0][ip_mag]>np.percentile(data[0][mask[0]][ip_mag],99.9)) )
-    mean = np.log10( np.mean( 10**data[0][mask[2]][ip_mag] ) )
-    print 'mean of the last 1%: ', mean
-    print 'median of the last 1%: ', np.median( data[0][mask[2]][ip_mag] )
-    plt.axhline( mean, linestyle='dotted' )
-    plt.axhline( np.median( data[0][mask[2]][ip_mag] ), linestyle='dotted', color='r' )
-    print 'min: ',max(data[0][mask[2]][ip_mag])
-    plt.axhline( max( data[0][mask[2]][ip_mag] ), linestyle='dotted', color='k' )
-    
+    PlotMagerrMag( "ip", ip_mag, ip_error, 2 )
     
     fig = plt.subplot(2,2,3)
-    plt.scatter(data[0][mask[0]][J_error],data[0][mask[0]][J_mag],s=2,alpha=0.1)
-    plt.xlabel( "J error", fontdict = {'fontsize' : 14} )
-    plt.ylabel( "J", fontdict = {'fontsize' : 14} )
-    plt.gca().invert_yaxis()
-    plt.xlim(-5,25)
-    plt.ylim(32,15)
-    print
-    print '99% value: ',np.percentile(data[0][mask[0]][J_mag],99.9)
-    SetupData( MaskAll(0) & (data[0][J_mag]>np.percentile(data[0][mask[0]][J_mag],99.9)) )
-    mean = np.log10( np.mean( 10**data[0][mask[3]][J_mag] ) )
-    print 'mean of the last 1%: ', mean
-    print 'median of the last 1%: ', np.median( data[0][mask[3]][J_mag] )
-    plt.axhline( mean, linestyle='dotted' )
-    plt.axhline( np.median( data[0][mask[3]][J_mag] ), linestyle='dotted', color='r' )
-    print 'min: ',max(data[0][mask[3]][J_mag])
-    plt.axhline( max( data[0][mask[3]][J_mag] ), linestyle='dotted', color='k' )
-    
+    PlotMagerrMag( "J", J_mag, J_error, 3 )
     
     fig = plt.subplot(2,2,4)
-    plt.scatter(data[0][mask[0]][Ks_error],data[0][mask[0]][Ks_mag],s=2,alpha=0.1)
-    plt.xlabel( "Ks error", fontdict = {'fontsize' : 14} )
-    plt.ylabel( "Ks", fontdict = {'fontsize' : 14} )
-    plt.gca().invert_yaxis()
-    plt.xlim(-10,90)
-    plt.ylim(33,16)
-    print
-    print '99% value: ',np.percentile(data[0][mask[0]][Ks_mag],99.9)
-    SetupData( MaskAll(0) & (data[0][Ks_mag]>np.percentile(data[0][mask[0]][Ks_mag],99.9)) )
-    mean = np.log10( np.mean( 10**data[0][mask[4]][Ks_mag] ) )
-    print 'mean of the last 1%: ', mean
-    print 'median of the last 1%: ', np.median( data[0][mask[4]][Ks_mag] )
-    plt.axhline( mean, linestyle='dotted' )
-    plt.axhline( np.median( data[0][mask[4]][Ks_mag] ), linestyle='dotted', color='r')
-    print 'min: ',max(data[0][mask[4]][Ks_mag])
-    plt.axhline( max( data[0][mask[4]][Ks_mag] ), linestyle='dotted', color='k' )
-    
-      
+    PlotMagerrMag( "Ks", Ks_mag, Ks_error, 4 )
+
     #fig.savefig('NUVrJ_1.pdf', bbox_inches = 'tight', format='png', dpi=1200)
     
     return
@@ -1203,7 +1279,8 @@ ReadCatalog( 0,catalog[0] )
 
 # ===== color-color diagram =====
 
-#PlotColorColor()
+PlotColorColor()
+#PlotColorColor_UVJ()
 
 #PlotColorColor_Submm850()
 #PlotColorColor_Submm450()
@@ -1235,7 +1312,7 @@ ReadCatalog( 0,catalog[0] )
 
 #stacking_sfr_tmp()
 
-PlotLimitMag()
+#PlotLimitMag()
 
 
 #PrintBSMGfraction()
