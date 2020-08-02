@@ -1293,9 +1293,20 @@ def CalDist():
     
     return
 
+def Plot_Random_matching_printvalues( actual, mean, per16, per84 ):
+    
+    print "diff:              ", actual - mean
+    print "upper limit:       ", per84  - mean
+    print "lower limit:       ", mean   - per16
+    print "fractional diff:   ", (actual - mean)/mean*100
+    print "lower/upper limit: ", np.array( [(mean-per16)/mean*100,(per84-mean)/mean*100] )
+
 def Plot_Random_matching():
     
-    label_list = [ "all", "with ALMA", "without ALMA", "ALMA source"]
+    print "Plot results of random matching ..."
+    print
+    print "all, with ALMA, without ALMA, ALMA source"
+    print
     
     QG_actual_450 = np.array( [29,5,24,2] )
     QG_mean_450 = np.array( [20.02,4.30,15.53,0.28] )
@@ -1303,10 +1314,8 @@ def Plot_Random_matching():
     QG_84p_450 = np.array( [25.0,6.0,19.0,1.0] )
     QG_std_450 = np.array( [4.76,2.08,3.97,0.51] )
     
-    print QG_mean_450
-    print QG_84p_450 - QG_mean_450
-    print QG_mean_450 - QG_16p_450
-    print np.array( [(QG_mean_450-QG_16p_450)/QG_mean_450 *100,(QG_84p_450-QG_mean_450)/QG_mean_450 *100]  )
+    print "QG, 450 um"
+    Plot_Random_matching_printvalues( QG_actual_450, QG_mean_450, QG_16p_450, QG_84p_450 )
     print
     
     SFG_actual_450 = np.array( [420,83,337,47] )
@@ -1315,23 +1324,20 @@ def Plot_Random_matching():
     SFG_84p_450 = np.array( [177.0,42.0,139.0,4.0] )
     SFG_std_450 = np.array( [13.22,6.15,11.71,1.52] )
     
-    print SFG_mean_450
-    print SFG_84p_450 - SFG_mean_450
-    print SFG_mean_450 - SFG_16p_450
-    print np.array( [(SFG_mean_450-SFG_16p_450)/SFG_mean_450 *100,(SFG_84p_450-SFG_mean_450)/SFG_mean_450 *100]  )
+    print "SFG, 450 um"
+    Plot_Random_matching_printvalues( SFG_actual_450, SFG_mean_450, SFG_16p_450, SFG_84p_450 )
     print
-    
+
     QG_actual_850 = np.array( [191,77,114,9] )
     QG_mean_850 = np.array( [117.36,47.21,71.09,1.096] )
     QG_16p_850 = np.array( [105.0,40.0,62.0,0.0] )
     QG_84p_850 = np.array( [129.0,54.0,80.0,2.0] )
     QG_std_850 = np.array( [12.16,7.17,9.3,1.06] )
 
-    print QG_mean_850
-    print QG_84p_850 - QG_mean_850
-    print QG_mean_850 - QG_16p_850
-    print np.array( [(QG_mean_850-QG_16p_850)/QG_mean_850 *100,(QG_84p_850-QG_mean_850)/QG_mean_850 *100]  )
+    print "QG, 850 um"
+    Plot_Random_matching_printvalues( QG_actual_850, QG_mean_850, QG_16p_850, QG_84p_850 )
     print
+
 
     SFG_actual_850 = np.array( [1993,801,1192,223] )
     SFG_mean_850 = np.array( [1050.89,420.42,630.64,9.78] )
@@ -1339,10 +1345,8 @@ def Plot_Random_matching():
     SFG_84p_850 = np.array( [1086.16,443.16,660.0,13.0] )
     SFG_std_850 = np.array( [36.43,23.00,29.72,3.11] )
     
-    print SFG_mean_850
-    print SFG_84p_850 - SFG_mean_850
-    print SFG_mean_850 - SFG_16p_850
-    print np.array( [(SFG_mean_850-SFG_16p_850)/SFG_mean_850 *100,(SFG_84p_850-SFG_mean_850)/SFG_mean_850 *100]  )
+    print "SFG, 850 um"
+    Plot_Random_matching_printvalues( SFG_actual_850, SFG_mean_850, SFG_16p_850, SFG_84p_850 )
     print
     
     '''
@@ -1575,8 +1579,8 @@ time1 = time.time()
 #AS2COSMOS_outer()
 #A3COSMOS_outer()
 
-Random_matching()
-#Plot_Random_matching()
+#Random_matching()
+Plot_Random_matching()
 
 #CalDist()
 
