@@ -28,7 +28,7 @@ def SimplifyMainCat():
     catalog = path+inputcatalog+".fits"
     
     ###set columns
-    columns = [ "ALPHA_J2000", "DELTA_J2000", "NUMBER", "MNUV", "MR", "MJ", "PHOTOZ","ZQ",
+    columns = [ "ALPHA_J2000", "DELTA_J2000", "NUMBER", "MNUV", "MR", "MJ", "MU", "MV", "PHOTOZ","ZQ",
                 "V_MAGERR_APER3", "ip_MAGERR_APER3", "J_MAGERR_APER3", "Ks_MAGERR_APER3",
                 "V_MAG_APER3", "ip_MAG_APER3", "J_MAG_APER3", "Ks_MAG_APER3",
                 "MASS_MED","MASS_MED_MIN68","MASS_MED_MAX68", "TYPE", "CLASS",
