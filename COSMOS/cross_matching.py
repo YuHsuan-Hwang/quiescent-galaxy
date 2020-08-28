@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import cKDTree
 from astropy.cosmology import FlatLambdaCDM
-
+import matplotlib.patches as mpatches
 # =============================================================================
 # functions
 # =============================================================================
@@ -60,7 +60,7 @@ def Mask_error( mode, up, index ):
         return mask_V_errorV | mask_ip_error | mask_J_error | mask_Ks_error
     
     if mode==2:
-        return (data[index][V_error]<up) & (data[index][V_error]>0)
+        return (data[index][Ks_error]<up) & (data[index][Ks_error]>0)
     
     if mode==3:
         return (data[index][Ks_mag]<24)
@@ -74,6 +74,9 @@ def Mask_class_star( index ):
 
 def MaskAll( index ):
     return Mask_M(index) & Mask_error( 1, 0.1, index ) & Mask_photoz( index ) & Mask_class_star( index )
+
+def MaskAllOneBand( index ):
+    return Mask_M(index) & Mask_error( 2, 0.2, index ) & Mask_photoz( index ) & Mask_class_star( index )
 
 def Mask_myclassQG ( index ): return ( y[index]> 3.1 ) & ( y[index]> 3.0*x[index]+1.0 )
 def Mask_myclassSFG( index ): return ( y[index]<=3.1 ) | ( y[index]<=3.0*x[index]+1.0 )
@@ -539,7 +542,7 @@ def TagSource_nonALMA( data_in_circle, j ):
     return
 
 
-def MatchingSubmm():
+def MatchingSubmm_tree():
     
     MAIN_CAT         = "COSMOS2015_merged_tmp.fits"
     CAT_24micron_all = path + "02_mips24/mips24_whwang.fits"
@@ -610,6 +613,404 @@ def MatchingSubmm():
     data0_masked_3   = data[0][MaskAll(0)&(data[0]["3GHZ"]==1     )]
     data0_masked_AS2 = data[0][MaskAll(0)&(data[0]["AS2COSMOS"]==1)]
     data0_masked_A3  = data[0][MaskAll(0)&(data[0]["A3COSMOS"]==1 )]
+    print "data0_masked     ",len(data0_masked)
+    print "data0_masked_24  ",len(data0_masked_24)
+    print "data0_masked_3   ",len(data0_masked_3)
+    print "data0_masked_AS2 ",len(data0_masked_AS2)
+    print "data0_masked_A3  ",len(data0_masked_A3)
+
+    print 'masked MAIN_CAT length ',len( data0_masked.filled() )
+    
+    ###calculate coordinate
+    
+    c_maincat       = np.array( [data0_masked[ra[0]], data0_masked[dec[0]]] )
+    c_maincat       = c_maincat.T
+    c_maincat_tree  = cKDTree(c_maincat)
+    
+    c_submmcat      = np.array( [data[1][ra[1]], data[1][dec[1]]] )
+    c_submmcat      = c_submmcat.T
+    c_submmcat_tree = cKDTree(c_submmcat)
+    
+    c_24            = np.array( [data[2][ra[2]], data[2][dec[2]]] )
+    c_24            = c_24.T
+    c_24_tree       = cKDTree(c_24)
+    
+    c_3             = np.array( [data[3][ra[3]], data[3][dec[3]]] )
+    c_3             = c_3.T
+    c_3_tree        = cKDTree(c_3)
+    
+    c_AS2           = np.array( [data[4][ra[4]], data[4][dec[4]]] )
+    c_AS2           = c_AS2.T
+    c_AS2_tree      = cKDTree(c_AS2)
+    
+    c_A3            = np.array( [data[5][ra[5]], data[5][dec[5]]] )
+    c_A3            = c_A3.T
+    c_A3_tree       = cKDTree(c_A3)
+    
+    
+    c_24_opt        = np.array( [data0_masked_24[ra[0]], data0_masked_24[dec[0]]] )
+    c_24_opt        = c_24_opt.T
+    c_24_opt_tree   = cKDTree(c_24_opt)
+    
+    c_3_opt         = np.array( [data0_masked_3[ra[0]], data0_masked_3[dec[0]]] )
+    c_3_opt         = c_3_opt.T
+    c_3_tree        = cKDTree(c_3_opt)
+    
+    c_AS2_opt       = np.array( [data0_masked_AS2[ra[0]], data0_masked_AS2[dec[0]]] )
+    c_AS2_opt       = c_AS2_opt.T
+    c_AS2_opt_tree  = cKDTree(c_AS2_opt)
+    
+    c_A3_opt        = np.array( [data0_masked_A3[ra[0]], data0_masked_A3[dec[0]]] )
+    c_A3_opt        = c_A3_opt.T
+    c_A3_opt_tree   = cKDTree(c_A3_opt)
+    
+    
+   
+    
+    #c0 = SkyCoord( ra=data0_masked[ra[0]],     dec=data0_masked[dec[0]]     ) #MAIN_CAT
+    #c1 = SkyCoord( ra=data[1][ra[1]]*u.degree, dec=data[1][dec[1]]*u.degree ) #CAT
+    #c2 = SkyCoord( ra=data[2][ra[2]]*u.degree, dec=data[2][dec[2]]*u.degree ) #24
+    #c3 = SkyCoord( ra=data[3][ra[3]]         , dec=data[3][dec[3]]          ) #3
+    #c4 = SkyCoord( ra=data[4][ra[4]]*u.degree, dec=data[4][dec[4]]*u.degree ) #AS2COSMOS
+    #c5 = SkyCoord( ra=data[5][ra[5]]         , dec=data[5][dec[5]]          ) #A3COSMOS
+    
+    #c6 = SkyCoord( ra=data0_masked_24[ra[0]] , dec=data0_masked_24[dec[0]]  ) #24
+    #c7 = SkyCoord( ra=data0_masked_3[ra[0]]  , dec=data0_masked_3[dec[0]]   ) #3
+    #c8 = SkyCoord( ra=data0_masked_AS2[ra[0]], dec=data0_masked_AS2[dec[0]] ) #AS2COSMOS_opt
+    #c9 = SkyCoord( ra=data0_masked_A3[ra[0]] , dec=data0_masked_A3[dec[0]]  ) #A3COSMOS_opt
+    
+    ###matching
+    
+    global SOURCE, SOURCE_DIRECT_ALMA, SOURCE_DIRECT_NONALMA, label_num, label_num2
+    
+    SOURCE                = [0]*len( data[0].filled() ) #create an array with length of COSMOS2015
+    SOURCE_DIRECT_ALMA    = [0]*len( data[0].filled() )
+    SOURCE_DIRECT_NONALMA = [0]*len( data[0].filled() )
+    
+    #all AS2COSMO S850 sources = ALMA_detect_Num + MIPSandVLA_detect_Num + MIPS_detect_Num
+    #                            + VLA_detect_Num + MIPSorVLA_detect_no_opt_Num + non_detect_Num
+    label_num = [ 0,0,0,0,0,0,0 ]
+
+    ALMA_detect_Num              = 0 #with ALMA observation
+    
+    A3andAS2_detect_Num          = 0 #with A3 and AS2 observation  label1
+    A3COSMOS_detect_Num          = 0 #only with A3 observation     label2
+    AS2COSMOS_detect_Num         = 0 #only with AS2 observation    label3
+    A3orAS2_detect_no_opt_Num    = 0 #but without opt samples
+    
+    MIPSorVLA_detect_Num         = 0
+    
+    MIPSandVLA_detect_Num        = 0 #with 24 and 3 observation    label4
+    MIPS_detect_Num              = 0 #only with 24 observation     label5
+    VLA_detect_Num               = 0 #only with 3 observation      label6
+    MIPSorVLA_detect_no_opt_Num  = 0 #but without opt samples
+    
+    non_detect_Num               = 0 #no any other observation     label7: every opt sample within the radius
+    non_detect_no_opt_Num        = 0 #even without any opt sample (outside COSMOS region)
+    
+    label_num2 = [ 0,0 ]
+    
+    ALMA_num = 0
+    
+    print "matching loop start ..."
+    print 'CAT length ',len(data[1].filled())
+    
+    
+    data4_in_circle = c_submmcat_tree.query_ball_tree(c_AS2_tree, r=searching_radius/60.0/60.0)
+    data5_in_circle = c_submmcat_tree.query_ball_tree(c_A3_tree,  r=searching_radius/60.0/60.0)
+    data0_in_circle = c_submmcat_tree.query_ball_tree(c_maincat_tree,  r=searching_radius/60.0/60.0)
+    
+    data8_in_circle = c_submmcat_tree.query_ball_tree(c_AS2_opt_tree,  r=searching_radius/60.0/60.0)
+    data9_in_circle = c_submmcat_tree.query_ball_tree(c_A3_opt_tree,   r=searching_radius/60.0/60.0)
+    
+    
+    return
+    #len(data4_in_circle)==len(data5_in_circle)==len(data[1])
+    for i in range( len(data[1]) ):
+        
+        
+        
+        if ( data5_in_circle[i]>0 ) | ( data4_in_circle[i]>0 ):
+            
+            ALMA_num += data5_in_circle[i] + data4_in_circle[i]
+            
+            for j in range ( len(data0_in_circle[i]) ): # go through every opt sources
+                    TagSource_ALMA( data0_in_circle[i][j], j )
+            
+            ALMA_detect_Num +=1
+            
+            if ( data8_in_circle[i]>0 ) & ( data9_in_circle[i]>0 ):
+                
+                label_flag = 0
+                for j in range ( len(data9_in_circle[i]) ): # go through every 24 opt sources
+                    for k in range( len(data8_in_circle[i]) ):
+                        if ( data9_in_circle[galaxyid][j]==data8_in_circle[galaxyid][k] ):
+                                
+                            TagSource( data9_in_circle, j, 1 )
+                            label_flag = 1
+
+                if label_flag==1 :
+                    A3andAS2_detect_Num  += 1
+                    continue 
+    
+            
+ #TODO: don't use TagSource, write new code            
+            
+            
+    for i in range( len(data[1].filled()) ): #go through every id in CAT
+        
+        
+        
+        sep4            = c4.separation( c1[i] )
+        data4_in_circle = data[4][ sep4<=searching_radius*u.arcsec ]
+        sep5            = c5.separation( c1[i] )
+        data5_in_circle = data[5][ sep5<=searching_radius*u.arcsec ]
+        
+
+        
+        if ( len(data5_in_circle)>0 )|( len(data4_in_circle)>0 ): #ALMA detected
+            
+            #print len(data5_in_circle), len(data4_in_circle)
+            ALMA_num += len(data5_in_circle)+len(data4_in_circle)
+            
+            # tag every opt sample within the radius
+            sep0            = c0.separation( c1[i] )
+            data0_in_circle = data0_masked[ sep0<=searching_radius*u.arcsec ]
+                
+            if ( len(data0_in_circle)>0 ):
+                for j in range ( len(data0_in_circle) ): # go through every opt sources
+                    TagSource_ALMA( data0_in_circle, j )
+            
+            
+            
+            ALMA_detect_Num +=1
+            
+            sep8            = c8.separation( c1[i] )
+            data8_in_circle = data0_masked_AS2[ sep8<=searching_radius*u.arcsec ]
+            sep9            = c9.separation( c1[i] )
+            data9_in_circle = data0_masked_A3[ sep9<=searching_radius*u.arcsec ]
+            
+            if ( len(data9_in_circle)>0 )&( len(data8_in_circle)>0 ):
+                
+                label_flag = 0
+                for j in range ( len(data9_in_circle) ): # go through every 24 opt sources
+                    for k in range( len(data8_in_circle) ):
+                        if ( data9_in_circle[galaxyid][j]==data8_in_circle[galaxyid][k] ):
+                                
+                            TagSource( data9_in_circle, j, 1 )
+                            label_flag = 1
+
+                if label_flag==1 :
+                    A3andAS2_detect_Num  += 1
+                    continue               
+            
+            if ( len(data9_in_circle)>0 )&( len(data8_in_circle)==0 ): #A3COSMOS detected
+            
+                A3COSMOS_detect_Num += 1         
+                for j in range( len(data9_in_circle) ):
+                    TagSource( data9_in_circle, j, 2 )
+                            
+            elif ( len(data9_in_circle)==0 )&( len(data8_in_circle)>0 ): #AS2COSMOS detected
+                
+                AS2COSMOS_detect_Num += 1           
+                for j in range( len(data8_in_circle) ):
+                    TagSource( data8_in_circle, j, 3 )
+                            
+            else: #no opt counterpart
+                A3orAS2_detect_no_opt_Num += 1
+            
+      
+            
+        else: #no ALMA observation
+            
+            
+            # tag every opt sample within the radius
+            sep0            = c0.separation( c1[i] )
+            data0_in_circle = data0_masked[ sep0<=searching_radius*u.arcsec ]
+            
+            if ( len(data0_in_circle)>0 ):
+                for j in range ( len(data0_in_circle) ): # go through every opt sources
+                    TagSource_nonALMA( data0_in_circle, j )
+        
+            MIPSorVLA_detect_Num += 1
+            
+            sep2            = c2.separation( c1[i] )
+            data2_in_circle = data[2][ sep2<=searching_radius*u.arcsec ]
+            sep3            = c3.separation( c1[i] )
+            data3_in_circle = data[3][ sep3<=searching_radius*u.arcsec ]  
+            
+            if ( len(data2_in_circle)>0 )|( len(data3_in_circle)>0 ): # with 24 or 3 detected
+                
+                sep6            = c6.separation( c1[i] )
+                data6_in_circle = data0_masked_24[ sep6<=searching_radius*u.arcsec ]
+                sep7            = c7.separation( c1[i] )
+                data7_in_circle = data0_masked_3[ sep7<=searching_radius*u.arcsec ]  
+            
+                if ( len(data6_in_circle)>0 )&( len(data7_in_circle)>0 ): # with 24 or 3 opt sources
+                    
+                    label_flag = 0
+                    
+                    for j in range ( len(data6_in_circle) ): # go through every 24 opt sources
+                        for k in range( len(data7_in_circle) ):
+                            if ( data6_in_circle[galaxyid][j]==data7_in_circle[galaxyid][k] ):
+                                
+                                TagSource( data6_in_circle, j, 4 )
+                                label_flag = 1
+
+                    if label_flag==1 :
+                        MIPSandVLA_detect_Num += 1
+                        continue
+                                    
+                if ( len(data6_in_circle)>0 )&( len(data7_in_circle)==0 ): # with 24 opt sources
+                    
+                    MIPS_detect_Num += 1                    
+                    for j in range ( len(data6_in_circle) ): # go through every 24 opt sources                      
+                        TagSource( data6_in_circle, j, 5 )
+                            
+                elif ( len(data6_in_circle)==0 )&( len(data7_in_circle)>0 ): # with 3 opt sources
+                    
+                    VLA_detect_Num += 1                    
+                    for j in range ( len(data7_in_circle) ): # go through every 3 opt sources                       
+                        TagSource( data7_in_circle, j, 6 )
+                            
+                else: # with 24 or 3 detected but no opt sample
+                    
+                    MIPSorVLA_detect_no_opt_Num += 1
+                
+              
+            
+            
+            else: # no ALMA, 24, or 3 detection
+            
+                non_detect_Num += 1
+                MIPSorVLA_detect_Num -= 1
+                
+                if ( len(data0_in_circle)>0 ):
+                    for j in range ( len(data0_in_circle) ): # go through every opt sources
+                        TagSource(  data0_in_circle, j, 7 ) 
+
+                else:                   
+                    non_detect_no_opt_Num += 1
+                            
+    print
+    print "ALMA_detect_Num             ", ALMA_detect_Num
+    print
+    print "A3andAS2_detect_Num         ", A3andAS2_detect_Num
+    print "opt sample num (1)          ", label_num[0]
+    print "A3COSMOS_detect_Num         ", A3COSMOS_detect_Num
+    print "opt sample num (2)          ", label_num[1]
+    print "AS2COSMOS_detect_Num        ", AS2COSMOS_detect_Num
+    print "opt sample num (3)          ", label_num[2]
+    print "A3orAS2_detect_no_opt_Num   ", A3orAS2_detect_no_opt_Num
+    print
+    print "MIPSorVLA_detect_Num        ", MIPSorVLA_detect_Num
+    print
+    print "MIPSandVLA_detect_Num       ", MIPSandVLA_detect_Num
+    print "opt sample num (4)          ", label_num[3]
+    print "MIPS_detect_Num             ", MIPS_detect_Num
+    print "opt sample num (5)          ", label_num[4]
+    print "VLA_detect_Num              ", VLA_detect_Num
+    print "opt sample num (6)          ", label_num[5]
+    print "MIPSorVLA_detect_no_opt_Num ", MIPSorVLA_detect_no_opt_Num
+    print
+    print "non_detect_Num              ", non_detect_Num
+    print "non_detect_no_opt_Num       ", non_detect_no_opt_Num
+    print "opt sample num (7)          ", label_num[6]
+    print
+    
+    print
+    print "direct matching"
+    print "opt sample num (ALMA)       ", label_num2[0]
+    print "opt sample num (nonALMA)    ", label_num2[1]
+    print
+    print "ALMA num                    ", ALMA_num
+    print "average ALMA num            ", ( "%.2f" % (ALMA_num/ALMA_detect_Num) )
+    print
+    
+    ###output
+    print 'writing table file ...'
+    output_cat = OutputCat( SOURCE_COLUMN, SOURCE ) 
+    
+    output_cat[SOURCE_COLUMN+"_DIRECT_ALMA"   ]  = SOURCE_DIRECT_ALMA
+    output_cat[SOURCE_COLUMN+"_DIRECT_NONALMA"]  = SOURCE_DIRECT_NONALMA
+    
+    
+    output_cat.write( OUTPUT_CAT )
+    print
+    
+    return
+
+def MatchingSubmmOneBand():
+    
+    MAIN_CAT         = "COSMOS2015_merged_tmp.fits"
+    CAT_24micron_all = path + "02_mips24/mips24_whwang.fits"
+    CAT_3GHz_all     = path + "05_3GHz/vla3_cosmos_sources_160321_public5sig.fits.txt"
+    CAT_ALMA_all     = path + "07_ALMA/AS2COSMOScatalog_2019-06-01_merged_wJMSphotom_wZspec.fits"
+    CAT_A3COSMOS_all = 'A-COSMOS_blind_single.fits'#path + "07_ALMA/apjsab42da_table4/A-COSMOS_blind.fits"#
+    
+    ###set catalog names
+    number      = 6
+    cat_name    = [None]*number
+    cat_name[0] = MAIN_CAT
+    cat_name[1] = CAT
+    
+    cat_name[2] = CAT_24micron_all
+    cat_name[3] = CAT_3GHz_all
+    cat_name[4] = CAT_ALMA_all
+    cat_name[5] = CAT_A3COSMOS_all
+    
+    ###set ID column names
+    global galaxyid
+    galaxyid = "NUMBER"
+    
+    ##set RA DEC column names
+    ra     = [None]*number
+    dec    = [None]*number
+    ra[0]  = "ALPHA_J2000"
+    dec[0] = "DELTA_J2000"
+    ra[1]  = RA
+    dec[1] = DEC
+    ra[2]  = "RA_mips24"
+    dec[2] = "DEC_mips24"
+    ra[3]  = "ra"
+    dec[3] = "dec"
+    ra[4]  = "RA_final"
+    dec[4] = "Dec_final"
+    ra[5]  = "RA"
+    dec[5] = "DEC"
+    
+    ###set columns in the main catalog
+    global color1, color2, color3, photoz
+    global V_error, ip_error, J_error, Ks_error, class_star, Ks_mag
+    color1     = "MNUV"
+    color2     = "MR"
+    color3     = "MJ"
+    photoz     = "REDSHIFT"
+    V_error    = "V_MAGERR_APER3"
+    ip_error   = "ip_MAGERR_APER3"
+    J_error    = "J_MAGERR_APER3"
+    Ks_error   = "Ks_MAGERR_APER3"
+    class_star = "TYPE"
+    Ks_mag     = "Ks_MAG_APER3"
+    
+    ###read catalog
+    global data
+    data = [None]*number
+    print 'reading catalogs ...'
+    for i in range( number ): ReadCat( i,data,cat_name[i] )
+    
+    time2 = time.time()
+    print 'current time :', ( time2-time1 )/60.0 , 'min'
+    
+    print "len( data[5] )", len( data[5] )
+    
+    
+    ###mask cat           
+    data0_masked     = data[0][MaskAllOneBand(0)]
+    data0_masked_24  = data[0][MaskAllOneBand(0)&(data[0]["24MICRON"]==1 )]
+    data0_masked_3   = data[0][MaskAllOneBand(0)&(data[0]["3GHZ"]==1     )]
+    data0_masked_AS2 = data[0][MaskAllOneBand(0)&(data[0]["AS2COSMOS"]==1)]
+    data0_masked_A3  = data[0][MaskAllOneBand(0)&(data[0]["A3COSMOS"]==1 )]
     print "data0_masked     ",len(data0_masked)
     print "data0_masked_24  ",len(data0_masked_24)
     print "data0_masked_3   ",len(data0_masked_3)
@@ -833,14 +1234,14 @@ def MatchingSubmm():
     print
     print "ALMA num                    ", ALMA_num
     print "average ALMA num            ", ( "%.2f" % (ALMA_num/ALMA_detect_Num) )
-    print 
+    print
+    
     ###output
     print 'writing table file ...'
-    output_cat = OutputCat( SOURCE_COLUMN, SOURCE ) 
+    output_cat = OutputCat( SOURCE_COLUMN+"_ONEBAND", SOURCE ) 
     
-    output_cat[SOURCE_COLUMN+"_DIRECT_ALMA"   ]  = SOURCE_DIRECT_ALMA
-    output_cat[SOURCE_COLUMN+"_DIRECT_NONALMA"]  = SOURCE_DIRECT_NONALMA
-    
+    output_cat[SOURCE_COLUMN+"_DIRECT_ALMA_ONEBAND"   ]  = SOURCE_DIRECT_ALMA
+    output_cat[SOURCE_COLUMN+"_DIRECT_NONALMA_ONEBAND"]  = SOURCE_DIRECT_NONALMA
     
     output_cat.write( OUTPUT_CAT )
     print
@@ -860,10 +1261,10 @@ def Matching_850wide():
     DEC           = "DEC_deg"
     SOURCE_COLUMN = "850WIDE"
     
-    OUTPUT_CAT       = "COSMOS2015_850wide.fits"    
+    OUTPUT_CAT       = "COSMOS2015_850wide_oneband.fits"    
     searching_radius = 7.0
 
-    MatchingSubmm()
+    MatchingSubmmOneBand()
     
     return
 
@@ -882,10 +1283,10 @@ def Matching_450narrow():
     DEC           = "DEC_450"
     SOURCE_COLUMN = "450NARROW"
     
-    OUTPUT_CAT       = "COSMOS2015_450narrow.fits"
+    OUTPUT_CAT       = "COSMOS2015_450narrow_oneband.fits"
     searching_radius = 4.0
     
-    MatchingSubmm()
+    MatchingSubmmOneBand()
     
     return
 
@@ -1022,15 +1423,17 @@ def AS2COSMOS_outer():
 
 
 
-def Random_matching():
+def Random_matching( COL_TAG ):
     
     print "Random matching "
     
-    ALMA_MODE = 0  # 0: 4 and 7 radius, 1: 1 radius
+    np.random.seed(0)
+    
+    ALMA_MODE = 1  # 0: 4 and 7 radius, 1: 1 radius
     MODE = 0       # 0: 450um,          1: 850um
     
     ###set martirials
-    CAT  = "COSMOS2015_Laigle+_v1.1_simple_z.fits" #COSMOS2015
+    CAT  = "COSMOS2015_merged.fits" #COSMOS2015
     
     if MODE==0:
         print "450 um"
@@ -1075,12 +1478,16 @@ def Random_matching():
     time2 = time.time()
     print 'current time :', ( time2-time1 )/60.0 , 'min'
     
-    SetupData( MaskAll(0) )
+    if (COL_TAG=='_ONEBAND'):
+        MASKALL = MaskAllOneBand(0)
+    else: MASKALL = MaskAll(0)
+    
+    SetupData( MASKALL )
     SetupData( ((data[0]["FLAG_HJMCC"]==0)|(data[0]["FLAG_HJMCC"]==2)) & (data[0]["FLAG_COSMOS"]==1) )
-    SetupData( MaskAll(0) & Mask_myclassQG(0)  )
-    SetupData( MaskAll(0) & Mask_myclassSFG(0) )
+    SetupData( MASKALL & Mask_myclassQG(0)  )
+    SetupData( MASKALL & Mask_myclassSFG(0) )
 
-
+    ###turn sample posistions into trees
     c_area      = np.array( [data[0][mask[1]][ra],data[0][mask[1]][dec]] )
     c_area      = c_area.T
     c_area_tree = cKDTree(c_area)
@@ -1093,6 +1500,7 @@ def Random_matching():
     c_SFG       = c_SFG.T
     c_SFG_tree  = cKDTree(c_SFG)
     
+    ###find the parameters of random positions
     if MODE==1 :
         ra_min  = data[0][ra ][mask[0]].min()
         ra_max  = data[0][ra ][mask[0]].max()
@@ -1101,6 +1509,7 @@ def Random_matching():
     else:
         center450 = SkyCoord('10h00m25.0s', '2d24m22.0s', frame='fk5')
     
+    ###number of the sources
     if MODE==0 : pos_num_list = [353,78,275]
     else: pos_num_list = [981,391,590]   
     
@@ -1108,11 +1517,14 @@ def Random_matching():
         if MODE==0 : pos_num_list = [85]
         else: pos_num_list = [452]   
     
+    ###set of n simulations
     for n in range( len(pos_num_list) ):
         
         test_num = 1000
         matchedQG = np.zeros(test_num)
         matchedSFG = np.zeros(test_num)
+        
+        ###loop start
         pos_num = pos_num_list[n]
         print
         print "pos_num ", pos_num
@@ -1122,7 +1534,7 @@ def Random_matching():
         for i in range(test_num):
             
             if MODE==1 :
-                random1 = np.random.uniform(0,1,pos_num)
+                random1 = np.random.uniform(0,1,pos_num) #generate pos_num random positions
                 random2 = np.random.uniform(0,1,pos_num)
                 random_ra  = random1*(ra_max-ra_min) + ra_min
                 random_dec = random2*(dec_max-dec_min) + dec_min
@@ -1137,15 +1549,15 @@ def Random_matching():
             
             #print random_pos
             
-            random_pos_tree = cKDTree(random_pos)
+            random_pos_tree = cKDTree(random_pos) #turn the random positions into a tree
             
-            area_in_circle = random_pos_tree.query_ball_tree(c_area_tree, r=area_searching_radius)
+            area_in_circle = random_pos_tree.query_ball_tree(c_area_tree, r=area_searching_radius) #matching
             
             for j in range( len(area_in_circle) ):
                 #print len(area_in_circle[i])
                 onearea_in_circle = len(area_in_circle[j])
                 
-                while(1):
+                while(1): #check if there is nothing, then the source is likely to be out of region we are interested
                     if ( onearea_in_circle==0 ):
                         
                         #print random_pos[j][0], random_pos[j][1]
@@ -1153,7 +1565,7 @@ def Random_matching():
                         zero_alert +=1
                         
                         if MODE==1 :
-                            onerandom1 = np.random.uniform(0,1,1)
+                            onerandom1 = np.random.uniform(0,1,1) #find a new random position
                             onerandom2 = np.random.uniform(0,1,1)
                             onerandom_ra  = onerandom1*(ra_max-ra_min) + ra_min
                             onerandom_dec = onerandom2*(dec_max-dec_min) + dec_min
@@ -1167,8 +1579,8 @@ def Random_matching():
                         random_pos[j][1] = onerandom_dec
                         
                         #nerandom_pos = np.array(random_pos[i])
-                        onerandom_pos_tree = cKDTree( np.array( [random_pos[j]] ) )
-                        onearea_in_circle = onerandom_pos_tree.query_ball_tree(c_area_tree, r=area_searching_radius)
+                        onerandom_pos_tree = cKDTree( np.array( [random_pos[j]] ) ) #set tree
+                        onearea_in_circle = onerandom_pos_tree.query_ball_tree(c_area_tree, r=area_searching_radius) #matching
                         
                     else: break
                         
@@ -1186,70 +1598,94 @@ def Random_matching():
             for j in range( len(QG_in_circle) ): matchedQG[i] += len(QG_in_circle[j])
             for j in range( len(SFG_in_circle) ): matchedSFG[i] += len(SFG_in_circle[j])
             
-
-        
-        if MODE==0:
-            actual_num_QG  = [29,5,24]
-            actual_num_SFG = [420,83,337]
             
-        else:
-            actual_num_QG  = [191,77,114]
-            actual_num_SFG = [1993,801,1192]
+        if ALMA_MODE==0:
+            if MODE==0:  #450
+                mask_direct = (data[0]['450NARROW_DIRECT_ALMA'+COL_TAG]==1)|(data[0]['450NARROW_DIRECT_NONALMA'+COL_TAG]==1)
+                mask_direct_ALMA = (data[0]['450NARROW_DIRECT_ALMA'+COL_TAG]==1)
+                mask_direct_nonALMA = (data[0]['450NARROW_DIRECT_NONALMA'+COL_TAG]==1)
+                SetupData( MASKALL & Mask_myclassQG(0)  & mask_direct         ) #4
+                SetupData( MASKALL & Mask_myclassQG(0)  & mask_direct_ALMA    ) #5
+                SetupData( MASKALL & Mask_myclassQG(0)  & mask_direct_nonALMA ) #6
+                SetupData( MASKALL & Mask_myclassSFG(0) & mask_direct         ) #7
+                SetupData( MASKALL & Mask_myclassSFG(0) & mask_direct_ALMA    ) #8
+                SetupData( MASKALL & Mask_myclassSFG(0) & mask_direct_nonALMA ) #9
+                actual_num_QG  = [len(data[0][mask[4]]),len(data[0][mask[5]]),len(data[0][mask[6]])]
+                actual_num_SFG = [len(data[0][mask[7]]),len(data[0][mask[8]]),len(data[0][mask[9]])]
+                
+            else:  #850
+                mask_direct = (data[0]['850WIDE_DIRECT_ALMA'+COL_TAG]==1)|(data[0]['850WIDE_DIRECT_NONALMA'+COL_TAG]==1)
+                mask_direct_ALMA = (data[0]['850WIDE_DIRECT_ALMA'+COL_TAG]==1)
+                mask_direct_nonALMA = (data[0]['850WIDE_DIRECT_NONALMA'+COL_TAG]==1)
+                SetupData( MASKALL & Mask_myclassQG(0)  & mask_direct         ) #4
+                SetupData( MASKALL & Mask_myclassQG(0)  & mask_direct_ALMA    ) #5
+                SetupData( MASKALL & Mask_myclassQG(0)  & mask_direct_nonALMA ) #6
+                SetupData( MASKALL & Mask_myclassSFG(0) & mask_direct         ) #7
+                SetupData( MASKALL & Mask_myclassSFG(0) & mask_direct_ALMA    ) #8
+                SetupData( MASKALL & Mask_myclassSFG(0) & mask_direct_nonALMA ) #9
+                actual_num_QG  = [len(data[0][mask[4]]),len(data[0][mask[5]]),len(data[0][mask[6]])]
+                actual_num_SFG = [len(data[0][mask[7]]),len(data[0][mask[8]]),len(data[0][mask[9]])]
         
         if ALMA_MODE==1:
             if MODE==0:
-                actual_num_QG  = [2]
-                actual_num_SFG = [47]
+                SetupData( MASKALL & Mask_myclassQG(0)   & ((data[0]["450NARROW"+COL_TAG]==1)|(data[0]["450NARROW"+COL_TAG]==2)|(data[0]["450NARROW"+COL_TAG]==3)) ) #4
+                SetupData( MASKALL & Mask_myclassSFG(0)  & ((data[0]["450NARROW"+COL_TAG]==1)|(data[0]["450NARROW"+COL_TAG]==2)|(data[0]["450NARROW"+COL_TAG]==3)) ) #5
+                actual_num_QG  = [len(data[0][mask[4]])]
+                actual_num_SFG = [len(data[0][mask[5]])]
             else:
-                actual_num_QG  = [9]
-                actual_num_SFG = [223]
-        
+                SetupData( MASKALL & Mask_myclassQG(0)   & ((data[0]["850WIDE"+COL_TAG]==1)|(data[0]["850WIDE"+COL_TAG]==2)|(data[0]["850WIDE"+COL_TAG]==3)) ) #4
+                SetupData( MASKALL & Mask_myclassSFG(0)  & ((data[0]["850WIDE"+COL_TAG]==1)|(data[0]["850WIDE"+COL_TAG]==2)|(data[0]["850WIDE"+COL_TAG]==3)) ) #5
+                actual_num_QG  = [len(data[0][mask[4]])]
+                actual_num_SFG = [len(data[0][mask[5]])]
         
         print "zero alert num ",zero_alert
         print
         print  "QG  actual ", actual_num_QG[n]
         print  "QG  mean ",np.mean(matchedQG) 
-        print  "QG  std  ",( "%.2f" % np.std(matchedQG) )
+        print  "QG  std  ",( "%.1f" % np.std(matchedQG) )
         print  "QG  16%  ",np.percentile(matchedQG, 16)
         print  "QG  84%  ",np.percentile(matchedQG, 84)
-        print  "QG  number      ", np.count_nonzero(matchedQG == actual_num_QG[n])
-        print  "QG  possibility ",float( np.count_nonzero(matchedQG == actual_num_QG[n]) )/1000.0
+        print  "QG  number      ", np.count_nonzero(matchedQG >= actual_num_QG[n])
+        print  "QG  possibility ",float( np.count_nonzero(matchedQG >= actual_num_QG[n]) )/1000.0
         
         print
         print  "SFG actual ", actual_num_SFG[n]
         print  "SFG mean ",np.mean(matchedSFG) 
-        print  "SFG std  ",( "%.2f" % np.std(matchedSFG) )
+        print  "SFG std  ",( "%.1f" % np.std(matchedSFG) )
         print  "SFG 16%  ",np.percentile(matchedSFG, 16)
         print  "SFG 84%  ",np.percentile(matchedSFG, 84)
-        print  "SFG number      ", np.count_nonzero(matchedSFG == actual_num_SFG[n])
-        print  "SFG possibility ",float( np.count_nonzero(matchedSFG == actual_num_SFG[n]) )/1000.0
+        print  "SFG number      ", np.count_nonzero(matchedSFG >= actual_num_SFG[n])
+        print  "SFG possibility ",float( np.count_nonzero(matchedSFG >= actual_num_SFG[n]) )/1000.0        
         
-        print
-        #print np.mean(matchedQG),"$\pm$",np.std(matchedQG)," & ",np.mean(matchedSFG),"$\pm$",np.std(matchedSFG)
-        print
+        print ( "%.1f" % np.mean(matchedQG) ),\
+              "$^{+",( "%.1f" % (np.percentile(matchedQG, 84)-np.mean(matchedQG)) ),\
+              "}_{-",( "%.1f" % (np.mean(matchedQG)-np.percentile(matchedQG, 16)) ),\
+              "}$ & ",actual_num_QG[n]," & ",( "%.1f" % (actual_num_QG[n]-np.mean(matchedQG)) ),\
+              "$^{+",( "%.1f" % (np.percentile(matchedQG, 84)-np.mean(matchedQG)) ),\
+              "}_{-",( "%.1f" % (np.mean(matchedQG)-np.percentile(matchedQG, 16)) ),\
+              "}$ & ",( "%.1f" % ((actual_num_QG[n]-np.mean(matchedQG))/np.mean(matchedQG)*100.0) ),\
+              "$^{+",( "%.1f" % ((np.percentile(matchedQG, 84)-np.mean(matchedQG))/np.mean(matchedQG)*100.0) ),\
+              "}_{-",( "%.1f" % ((np.mean(matchedQG)-np.percentile(matchedQG, 16))/np.mean(matchedQG)*100.0) ),\
+              "}$\% &",float( np.count_nonzero(matchedQG >= actual_num_QG[n]) )/1000.0
+              
+        print ( "%.1f" % np.mean(matchedSFG) ),\
+              "$^{+",( "%.1f" % (np.percentile(matchedSFG, 84)-np.mean(matchedSFG)) ),\
+              "}_{-",( "%.1f" % (np.mean(matchedSFG)-np.percentile(matchedSFG, 16)) ),\
+              "}$ & ",actual_num_SFG[n]," & ",( "%.1f" % (actual_num_SFG[n]-np.mean(matchedSFG)) ),\
+              "$^{+",( "%.1f" % (np.percentile(matchedSFG, 84)-np.mean(matchedSFG)) ),\
+              "}_{-",( "%.1f" % (np.mean(matchedSFG)-np.percentile(matchedSFG, 16)) ),\
+              "}$ & ",( "%.1f" % ((actual_num_SFG[n]-np.mean(matchedSFG))/np.mean(matchedSFG)*100.0) ),\
+              "$^{+",( "%.1f" % ((np.percentile(matchedSFG, 84)-np.mean(matchedSFG))/np.mean(matchedSFG)*100.0) ),\
+              "}_{-",( "%.1f" % ((np.mean(matchedSFG)-np.percentile(matchedSFG, 16))/np.mean(matchedSFG)*100.0) ),\
+              "}$\% &",float( np.count_nonzero(matchedSFG >= actual_num_SFG[n]) )/1000.0
         
-        
-        #from scipy.optimize import curve_fit
-        #from scipy.stats import poisson
- 
-        #def fit_function(k, lamb, scale):
-        #    return poisson.pmf(k, lamb) * scale    
-        
-        
-        
+        '''
         plt.figure()
         
         if ALMA_MODE==1: input_bin = [0,1,2,3,4,5,6]
         else: input_bin = range(int(min(matchedQG)),int(max(matchedQG))+2,2)
         
         data_entries, bins, _ = plt.hist( matchedQG, bins=input_bin, label="expect", density=True )
-        #binscenters = np.array([0.5 * (bins[i] + bins[i+1]) for i in range(len(bins)-1)])
-        #popt, pcov = curve_fit(fit_function, xdata=binscenters, ydata=data_entries)
-        #print(popt)
-        #print data_entries
-        #print bins
-        
-        #plt.plot( bins, fit_function(bins, *popt), label="poisson, lambda = "+ ( "%.1f"%popt[0] ) )
         
         if actual_num_QG[n]<max(matchedQG): plt.axvline( actual_num_QG[n], color='k', linestyle='--' )
         plt.axvline( np.mean(matchedQG), color='k' )
@@ -1262,16 +1698,10 @@ def Random_matching():
         
         plt.figure()
         
-        input_bin = range(int(min(matchedSFG)),int(max(matchedSFG))+10,10)
+        if ALMA_MODE==1: input_bin = 5
+        else: input_bin = range(int(min(matchedSFG)),int(max(matchedSFG))+10,10)
         
         data_entries, bins, _ = plt.hist( matchedSFG, bins=input_bin, label="expect", density=True )
-        #binscenters = np.array([0.5 * (bins[i] + bins[i+1]) for i in range(len(bins)-1)])
-        #popt, pcov = curve_fit(fit_function, xdata=binscenters, ydata=data_entries)
-        #print(popt)
-
-        
-        #plt.plot( bins, fit_function(bins, *popt), label="poisson, lambda = "+ ( "%.1f"%popt[0] ) )
-
 
         if actual_num_SFG[n]<max(matchedSFG): plt.axvline( actual_num_SFG[n], color='k', linestyle='--' )
         plt.axvline( np.mean(matchedSFG), color='k' )
@@ -1280,7 +1710,15 @@ def Random_matching():
         plt.xlabel("matched SFGs")
         plt.ylabel("number")
         plt.legend()
-         
+        '''
+    return
+
+def Random_matching_fourband():
+    Random_matching( "" )
+    return
+
+def Random_matching_oneband():
+    Random_matching( "_ONEBAND" )
     return
 
 def CalDist():
@@ -1290,6 +1728,17 @@ def CalDist():
     print dist_arcmin*7.0/60.0
     print dist_arcmin*4.0/60.0
     print dist_arcmin*1.0/60.0
+    print
+    dist_arcmin = cosmo.kpc_proper_per_arcmin(2)
+    print dist_arcmin*7.0/60.0
+    print dist_arcmin*4.0/60.0
+    print dist_arcmin*1.0/60.0
+    print
+    dist_arcmin = cosmo.kpc_proper_per_arcmin(2.5)
+    print dist_arcmin*7.0/60.0
+    print dist_arcmin*4.0/60.0
+    print dist_arcmin*1.0/60.0
+
     
     return
 
@@ -1308,48 +1757,50 @@ def Plot_Random_matching():
     print "all, with ALMA, without ALMA, ALMA source"
     print
     
-    QG_actual_450 = np.array( [29,5,24,2] )
-    QG_mean_450 = np.array( [20.02,4.30,15.53,0.28] )
-    QG_16p_450 = np.array( [15.0,2.0,12.0,0.0] )
-    QG_84p_450 = np.array( [25.0,6.0,19.0,1.0] )
-    QG_std_450 = np.array( [4.76,2.08,3.97,0.51] )
+    QG_actual_450 = np.array( [ 29,   5,    24,   2 ] )
+    QG_mean_450   = np.array( [ 20.3, 4.55, 16.1, 0.315 ] )
+    QG_16p_450    = np.array( [ 16.0, 2.0,  12.0, 0.0 ] )
+    QG_84p_450    = np.array( [ 25.0, 7.0,  20.0, 1.0 ] )
+    QG_std_450    = np.array( [ 4.6,  2.1,  4.0,  0.6 ] )
     
     print "QG, 450 um"
     Plot_Random_matching_printvalues( QG_actual_450, QG_mean_450, QG_16p_450, QG_84p_450 )
     print
     
-    SFG_actual_450 = np.array( [420,83,337,47] )
-    SFG_mean_450 = np.array( [163.05,36.19,127.88 ,2.50] )
-    SFG_16p_450 = np.array( [149.84,30.0,116.0 ,1.0] )
-    SFG_84p_450 = np.array( [177.0,42.0,139.0,4.0] )
-    SFG_std_450 = np.array( [13.22,6.15,11.71,1.52] )
+    SFG_actual_450 = np.array( [ 466,   100,  366,   56    ] )
+    SFG_mean_450   = np.array( [ 149.7, 32.5, 116.0, 2.202 ] )
+    SFG_16p_450    = np.array( [ 137.0, 27.0, 105.0, 1.0   ] )
+    SFG_84p_450    = np.array( [ 162.0, 38.2, 127.0, 4.0   ] )
+    SFG_std_450    = np.array( [ 12.7,  5.8,  11.1,  1.5   ] )
     
     print "SFG, 450 um"
     Plot_Random_matching_printvalues( SFG_actual_450, SFG_mean_450, SFG_16p_450, SFG_84p_450 )
     print
 
-    QG_actual_850 = np.array( [191,77,114,9] )
-    QG_mean_850 = np.array( [117.36,47.21,71.09,1.096] )
-    QG_16p_850 = np.array( [105.0,40.0,62.0,0.0] )
-    QG_84p_850 = np.array( [129.0,54.0,80.0,2.0] )
-    QG_std_850 = np.array( [12.16,7.17,9.3,1.06] )
+    QG_actual_850 = np.array( [ 206,   86,   120,  11    ] )
+    QG_mean_850   = np.array( [ 135.0, 53.5, 81.3, 1.262 ] )
+    QG_16p_850    = np.array( [ 123.0, 46.0, 72.0, 0.0   ] )
+    QG_84p_850    = np.array( [ 147.0, 61.0, 90.0, 2.0   ] )
+    QG_std_850    = np.array( [ 12.5,  7.8,  9.5,  1.1   ] )
 
     print "QG, 850 um"
     Plot_Random_matching_printvalues( QG_actual_850, QG_mean_850, QG_16p_850, QG_84p_850 )
     print
 
 
-    SFG_actual_850 = np.array( [1993,801,1192,223] )
-    SFG_mean_850 = np.array( [1050.89,420.42,630.64,9.78] )
-    SFG_16p_850 = np.array( [1014.68,398.0,600.0,7.0] )
-    SFG_84p_850 = np.array( [1086.16,443.16,660.0,13.0] )
-    SFG_std_850 = np.array( [36.43,23.00,29.72,3.11] )
+    SFG_actual_850 = np.array( [ 2087,    883,    1204,  277   ] )
+    SFG_mean_850   = np.array( [ 1045.7,  417.3,  627.4, 9.938 ] )
+    SFG_16p_850    = np.array( [ 1009.84, 394.84, 600.0, 7.0   ] )
+    SFG_84p_850    = np.array( [ 1081.2,  440.0,  654.0, 13.0  ] )
+    SFG_std_850    = np.array( [ 37.2,    23.9,   26.7,  3.0   ] )
     
     print "SFG, 850 um"
     Plot_Random_matching_printvalues( SFG_actual_850, SFG_mean_850, SFG_16p_850, SFG_84p_850 )
     print
     
-    '''
+    
+    label_list = ["all", "with ALMA", "without ALMA"]
+    
     fig, axes = plt.subplots()
     
     plt.errorbar( [1,2,3,4], (QG_actual_450-QG_mean_450)/QG_mean_450 *100,
@@ -1361,13 +1812,19 @@ def Plot_Random_matching():
     
     patch1 = mpatches.Patch( color='r', label='QG' )
     patch2 = mpatches.Patch( color='b', label='SFG' )
-    plt.legend( handles=[patch1,patch2],loc=4 )
+    plt.legend( handles=[patch1,patch2],loc=4, fontsize=12, frameon=False )
     
     plt.setp( axes, xticks=[y_axes+1 for y_axes in range(4)], xticklabels=label_list )
     plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
     
-    plt.axis([0.2,3.8,-50,200])
+    plt.axhline(0.0,c='k',ls='--')
+    plt.text( 0.5, 220, "(a)", ha='center', va='center', fontsize=14 )
+    
+    plt.axis([0.2,3.8,-70,250])
     fig.savefig('spatial_4.png', bbox_inches = 'tight', format='png', dpi=400)
+    
+    
+    
     
     fig, axes = plt.subplots()
     
@@ -1380,12 +1837,14 @@ def Plot_Random_matching():
     
     patch1 = mpatches.Patch( color='r', label='QG' )
     patch2 = mpatches.Patch( color='b', label='SFG' )
-    plt.legend( handles=[patch1,patch2],loc=4 )
+    plt.legend( handles=[patch1,patch2],loc=4, fontsize=12, frameon=False )
     
     plt.setp( axes, xticks=[y_axes+1 for y_axes in range(4)], xticklabels=label_list )
     plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
     
-    plt.axis([0.2,3.8,0,100])
+    plt.text( 0.5, 115, "(b)", ha='center', va='center', fontsize=14 )
+    
+    plt.axis([0.2,3.8,0,125])
     fig.savefig('spatial_7.png', bbox_inches = 'tight', format='png', dpi=400)
     
     #print (QG_actual_450[3]-QG_mean_450[3])/QG_mean_450[3] *100
@@ -1407,132 +1866,25 @@ def Plot_Random_matching():
 
     patch1 = mpatches.Patch( color='r', label='QG' )
     patch2 = mpatches.Patch( color='b', label='SFG' )
-    plt.legend( handles=[patch1,patch2],loc=4 )
+    plt.legend( handles=[patch1,patch2],loc=4, fontsize=12, frameon=False )
     
     plt.setp( axes, xticks=[y_axes+1 for y_axes in range(2)], xticklabels=[450,850] )
     plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
     
-    plt.axis([0.2,2.8,250,2500])
+    plt.text( 0.4, 2750, "(c)", ha='center', va='center', fontsize=14 )
+    
+    plt.axis([0.2,2.8,250,3000])
     
     fig.savefig('spatial_1.png', bbox_inches = 'tight', format='png', dpi=400)
     
-    '''
-    
-    '''
-    fig, axes = plt.subplots()
-    
-    plt.errorbar( [1,2,3,4], (QG_actual_450-QG_mean_450)/QG_mean_450 *100,
-                 QG_std_450/QG_mean_450 *100,
-                 color='r', fmt='o', capsize=5 ,alpha=0.8 )
-    plt.errorbar( [1,2,3,4], (SFG_actual_450-SFG_mean_450)/SFG_mean_450 *100,
-                 SFG_std_450/SFG_mean_450 *100,
-                 color='b', fmt='D', capsize=5 ,alpha=0.8 )
-    
-    
-    plt.setp( axes, xticks=[y_axes+1 for y_axes in range(4)], xticklabels=label_list )
-    plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
-    
-    plt.axis([0.2,3.8,-50,200])
-    
-    
-    fig, axes = plt.subplots()
-    
-    plt.errorbar( [1,2,3,4], (QG_actual_850-QG_mean_850)/QG_mean_850 *100,
-                 QG_std_850/QG_mean_850 *100,
-                 color='r', fmt='o', capsize=5 ,alpha=0.8 )
-    plt.errorbar( [1,2,3,4], (SFG_actual_850-SFG_mean_850)/SFG_mean_850 *100,
-                 SFG_std_850/SFG_mean_850 *100,
-                 color='b', fmt='D', capsize=5 ,alpha=0.8 )
-    
-    
-    plt.setp( axes, xticks=[y_axes+1 for y_axes in range(4)], xticklabels=label_list )
-    plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
-    
-    plt.axis([0.2,3.8,0,100])
-    
-    print (QG_actual_450[3]-QG_mean_450[3])/QG_mean_450[3] *100
-    
-    fig, axes = plt.subplots()
-    
-    plt.errorbar( 1, (QG_actual_450[3]-QG_mean_450[3])/QG_mean_450[3] *100,
-                 QG_std_450[3]/QG_mean_450[3] *100,
-                 color='r', fmt='o', capsize=5 ,alpha=0.8 )
-    plt.errorbar( 1, (SFG_actual_450[3]-SFG_mean_450[3])/SFG_mean_450[3] *100,
-                 SFG_std_450[3]/SFG_mean_450[3] *100,
-                 color='b', fmt='D', capsize=5 ,alpha=0.8 )
-    plt.errorbar( 2, (QG_actual_850[3]-QG_mean_850[3])/QG_mean_850[3] *100,
-                 QG_std_850[3]/QG_mean_850[3] *100,
-                 color='r', fmt='o', capsize=5 ,alpha=0.8 )
-    plt.errorbar( 2, (SFG_actual_850[3]-SFG_mean_850[3])/SFG_mean_850[3] *100,
-                 SFG_std_850[3]/SFG_mean_850[3] *100,
-                 color='b', fmt='D', capsize=5 ,alpha=0.8 )
-    
-    plt.setp( axes, xticks=[y_axes+1 for y_axes in range(2)], xticklabels=[450,850] )
-    plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
-    
-    plt.axis([0.2,2.8,250,2500])
-
-
-
-
-
-    fig, axes = plt.subplots()
-    
-    plt.errorbar( [1,2,3,4], (QG_actual_450-QG_mean_450)/QG_mean_450 *100,
-                 np.sqrt(QG_mean_450)/QG_mean_450 *100,
-                 color='r', fmt='o', capsize=5 ,alpha=0.8 )
-    plt.errorbar( [1,2,3,4], (SFG_actual_450-SFG_mean_450)/SFG_mean_450 *100,
-                 np.sqrt(SFG_mean_450)/SFG_mean_450 *100,
-                 color='b', fmt='D', capsize=5 ,alpha=0.8 )
-    
-    
-    plt.setp( axes, xticks=[y_axes+1 for y_axes in range(4)], xticklabels=label_list )
-    plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
-    
-    plt.axis([0.2,3.8,-50,200])
-    
-    
-    fig, axes = plt.subplots()
-    
-    plt.errorbar( [1,2,3,4], (QG_actual_850-QG_mean_850)/QG_mean_850 *100,
-                 np.sqrt(QG_mean_850)/QG_mean_850 *100,
-                 color='r', fmt='o', capsize=5 ,alpha=0.8 )
-    plt.errorbar( [1,2,3,4], (SFG_actual_850-SFG_mean_850)/SFG_mean_850 *100,
-                 np.sqrt(SFG_mean_850)/SFG_mean_850 *100,
-                 color='b', fmt='D', capsize=5 ,alpha=0.8 )
-    
-    
-    plt.setp( axes, xticks=[y_axes+1 for y_axes in range(4)], xticklabels=label_list )
-    plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
-    
-    plt.axis([0.2,3.8,0,100])
-    
-    print (QG_actual_450[3]-QG_mean_450[3])/QG_mean_450[3] *100
-    
-    fig, axes = plt.subplots()
-    
-    plt.errorbar( 1, (QG_actual_450[3]-QG_mean_450[3])/QG_mean_450[3] *100,
-                 np.sqrt(QG_mean_450[3])/QG_mean_450[3] *100,
-                 color='r', fmt='o', capsize=5 ,alpha=0.8 )
-    plt.errorbar( 1, (SFG_actual_450[3]-SFG_mean_450[3])/SFG_mean_450[3] *100,
-                np.sqrt(SFG_mean_450[3])/SFG_mean_450[3] *100,
-                 color='b', fmt='D', capsize=5 ,alpha=0.8 )
-    plt.errorbar( 2, (QG_actual_850[3]-QG_mean_850[3])/QG_mean_850[3] *100,
-                 np.sqrt(QG_mean_850[3])/QG_mean_850[3] *100,
-                 color='r', fmt='o', capsize=5 ,alpha=0.8 )
-    plt.errorbar( 2, (SFG_actual_850[3]-SFG_mean_850[3])/SFG_mean_850[3] *100,
-                 np.sqrt(SFG_mean_850[3])/SFG_mean_850[3] *100,
-                 color='b', fmt='D', capsize=5 ,alpha=0.8 )
-    
-    plt.setp( axes, xticks=[y_axes+1 for y_axes in range(2)], xticklabels=[450,850] )
-    plt.ylabel('difference (%)', fontdict = {'fontsize' : 14})
-    
-    plt.axis([0.2,2.8,250,2500])
-    
-    '''
-    
     return
     
+def Print_ch4_fraction():
+    
+    print "$",("%.2f"%(8.7/1846.0*100.0)),"^{+",("%.2f"%(4.7/1846.0*100.0)),"}_{-",("%.2f"%(4.3/1846.0*100.0)),"}$"
+    print "$",("%.2f"%(71.0/18304.0*100.0)),"^{+",("%.2f"%(12.0/18304.0*100.0)),"}_{-",("%.2f"%(12.0/18304.0*100.0)),"}$"
+
+    return
 
 # =============================================================================
 # main code
@@ -1579,10 +1931,13 @@ time1 = time.time()
 #AS2COSMOS_outer()
 #A3COSMOS_outer()
 
-#Random_matching()
-Plot_Random_matching()
+#Random_matching_fourband()
+#Random_matching_oneband()
+#Plot_Random_matching()
 
 #CalDist()
+
+Print_ch4_fraction()
 
 time2 = time.time()
 print 'done! time :', (time2-time1)/60.0 , 'min'
